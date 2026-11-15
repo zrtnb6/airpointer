@@ -243,6 +243,7 @@ tccutil reset BluetoothAlways local.airpointer
 - **系统交互文案**：蓝牙权限申请说明（`Info.plist` 的 `NSBluetoothAlwaysUsageDescription`）、VoiceOver 辅助功能标签与朗读文本。
 - **错误与状态提示**：`ClosedCaseAirPods` 的全部失败原因、`ClosedCaseSession` 的全部结束原因。
 - **文档**：本文件为简体中文版，英文原文保留在 [README.en.md](README.en.md)。
+- **配图**：`Assets/Readme/` 下的 `setup.png`、`screens.png`、`connect.gif` 都用中文界面重新渲染；`Scripts/make-readme-images.py` 改用中文字体，并去掉了对 ffmpeg 的依赖。
 - **内部逻辑不变**：`"Paused"` 这类作为哨兵值参与判断的字符串仍保留英文，只在显示层译为中文；日志与诊断用的内部英文原因也未改动，便于对照上游排查。
 - **附带修复上游一处编译错误**：`CaseSustainedRenewal.m` 中 `check(firstSensor, …)` 改为 `check(firstSensor!=nil, …)`，否则 `-Werror` 下 clang 会报 `incompatible pointer to integer conversion`。
 - **自检同步**：`Checks/HomeChecks.swift` 与轻敲测试自检里的期望文案改为中文，`--self-test`、`--check-home` 均可通过。

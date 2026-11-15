@@ -21,10 +21,9 @@ stage = (28, 28, 30, 255)
 
 
 def font(size, weight):
-    face = ImageFont.truetype('/System/Library/Fonts/SFNS.ttf', size)
-    # San Francisco's axes: width, optical size, grade, weight.
-    face.set_variation_by_axes([100, max(17, size), 400, weight])
-    return face
+    # 界面截图是简体中文，说明文字用冬青黑体（Hiragino Sans GB）：
+    # 该 ttc 里 index 0 是 W3，index 2 是 W6。
+    return ImageFont.truetype('/System/Library/Fonts/Hiragino Sans GB.ttc', size, index=2 if weight >= 600 else 0)
 
 
 def rounded(size, radius, fill=255):
@@ -102,25 +101,33 @@ def connect_animation():
         draw.text((size[0] / 2, 500), words, font=detail, fill=(170, 170, 176, 255), anchor='ma')
         return image
 
-    frames = [frame(lid[0], 'Open the lid', 'Keep both AirPods inside.', 1)] * 12
-    frames += [frame(art, 'Close the lid', 'AirPointer goes on by itself.', 2) for art in lid for _ in range(2)]
-    frames += [frame(lid[-1], 'Close the lid', 'AirPointer goes on by itself.', 2)] * 8
+    frames = [frame(lid[0], '打开盖子', '两只 AirPods 都留在里面。', 1)] * 12
+    frames += [frame(art, '合上盖子', 'AirPointer 会自动继续。', 2) for art in lid for _ in range(2)]
+    frames += [frame(lid[-1], '合上盖子', 'AirPointer 会自动继续。', 2)] * 8
     for step in range(18):
         t = step / 17
         turn = (1 - math.cos(t * math.pi)) / 2
         art = lid[-1].rotate(-90 * turn, Image.BICUBIC)
-        frames.append(frame(Image.blend(art, front, max(0, turn - 0.75) * 4), 'Turn it upright', 'A quarter turn clockwise.', 3))
-    frames += [frame(front, 'Pointing', 'Aim with the case. Tap its front to click.', 3, True)] * 28
+        frames.append(frame(Image.blend(art, front, max(0, turn - 0.75) * 4), '把它竖起来', '顺时针转四分之一圈。', 3))
+    frames += [frame(front, '正在指向', '用充电盒瞄准，轻敲正面即可点击。', 3, True)] * 28
 
-    with tempfile.TemporaryDirectory() as folder:
-        for index, image in enumerate(frames):
-            image.save(Path(folder) / f'{index:03}.png')
-        subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-framerate', '15', '-i', f'{folder}/%03d.png', '-filter_complex',
-                        '[0:v]scale=880:-1:flags=lanczos,split[a][b];[a]palettegen=reserve_transparent=1:stats_mode=full[p];[b][p]paletteuse=dither=bayer:bayer_scale=4:alpha_threshold=128',
-                        '-loop', '0', str(out / 'connect.gif')], check=True)
+    # 不依赖 ffmpeg：直接量化成调色板 GIF，圆角外的区域仍保留透明。
+    def gif_frame(image):
+        image = image.resize((880, round(image.height * 880 / image.width)), Image.LANCZOS)
+        alpha = image.split()[3]
+        flat = Image.new('RGB', image.size, (0, 0, 0))
+        flat.paste(image.convert('RGB'), (0, 0))
+        palette = flat.quantize(colors=255, method=Image.Quantize.MEDIANCUT)
+        palette.paste(255, mask=alpha.point(lambda a: 255 if a < 128 else 0))
+        return palette
+
+    rendered = [gif_frame(item) for item in frames]
+    rendered[0].save(out / 'connect.gif', save_all=True, append_images=rendered[1:],
+                     duration=67, loop=0, disposal=2, transparency=255, optimize=False)
 
 
-out.mkdir(exist_ok=True)
+if not out.is_dir():
+    out.mkdir(parents=True)
 icon()
 screens()
 setup()
