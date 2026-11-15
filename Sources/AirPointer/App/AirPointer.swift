@@ -59,13 +59,13 @@ final class App: NSObject, NSApplicationDelegate {
     @objc func recalibrate() {
         if let session=closedCaseSession,session.isActive{closedCalibrationDeclined=false;session.recalibrate();return}
         // Calibration captures from the closed case, so it needs a connection first.
-        pause();showHome();home?.setNotice("Connect your AirPods first, then recalibrate.")
+        pause();showHome();home?.setNotice("请先连接 AirPods，再重新校准。")
     }
     func refreshScreenList() {
         pointerSettings.screen=PointerSettingsState.screenIndex(chosen:pointerSettings.screenID,current:pointerSettings.screen,in:NSScreen.screens.map(\.displayID))
     }
     @objc func screensChanged() {
-        pause("Your displays changed. Resume when you’re ready."); refreshScreenList(); pointerSettings.persist()
+        pause("显示器发生了变化。准备好了就继续。"); refreshScreenList(); pointerSettings.persist()
         closedCaseSession?.refreshDisplays(selecting: pointerSettings.screen)
     }
     @objc func willSleep() { pause(); calibrator.disconnected() }
@@ -80,40 +80,40 @@ final class App: NSObject, NSApplicationDelegate {
             let value=NSMenuItem(title:title,action:action,keyEquivalent:key);value.target=self;return value
         }
         let appMenu=addMenu("AirPointer")
-        appMenu.addItem(withTitle:"About AirPointer",action:#selector(NSApplication.orderFrontStandardAboutPanel(_:)),keyEquivalent:"")
+        appMenu.addItem(withTitle:"关于 AirPointer",action:#selector(NSApplication.orderFrontStandardAboutPanel(_:)),keyEquivalent:"")
         appMenu.addItem(.separator())
-        appMenu.addItem(item("Settings…",#selector(openHomeSettings),","))
-        appMenu.addItem(item("Run Setup Again…",#selector(runSetupAgain)))
+        appMenu.addItem(item("设置…",#selector(openHomeSettings),","))
+        appMenu.addItem(item("重新运行设置…",#selector(runSetupAgain)))
         appMenu.addItem(.separator())
-        appMenu.addItem(withTitle:"Hide AirPointer",action:#selector(NSApplication.hide(_:)),keyEquivalent:"h")
-        let others=appMenu.addItem(withTitle:"Hide Others",action:#selector(NSApplication.hideOtherApplications(_:)),keyEquivalent:"h");others.keyEquivalentModifierMask=[.command,.option]
-        appMenu.addItem(withTitle:"Show All",action:#selector(NSApplication.unhideAllApplications(_:)),keyEquivalent:"")
+        appMenu.addItem(withTitle:"隐藏 AirPointer",action:#selector(NSApplication.hide(_:)),keyEquivalent:"h")
+        let others=appMenu.addItem(withTitle:"隐藏其他",action:#selector(NSApplication.hideOtherApplications(_:)),keyEquivalent:"h");others.keyEquivalentModifierMask=[.command,.option]
+        appMenu.addItem(withTitle:"全部显示",action:#selector(NSApplication.unhideAllApplications(_:)),keyEquivalent:"")
         appMenu.addItem(.separator())
-        appMenu.addItem(withTitle:"Quit AirPointer",action:#selector(NSApplication.terminate(_:)),keyEquivalent:"q")
-        let file=addMenu("File")
-        let start=item("Start Pointing",#selector(homeMenuControl));file.addItem(start);homeMenuItems.append(start)
-        file.addItem(item("Recenter",#selector(homeMenuRecenter),"r"))
-        file.addItem(item("Recalibrate…",#selector(recalibrate)))
-        let disconnect=item("Disconnect",#selector(disconnectClosedCase));file.addItem(disconnect);disconnectMenuItem=disconnect
+        appMenu.addItem(withTitle:"退出 AirPointer",action:#selector(NSApplication.terminate(_:)),keyEquivalent:"q")
+        let file=addMenu("文件")
+        let start=item("开始指向",#selector(homeMenuControl));file.addItem(start);homeMenuItems.append(start)
+        file.addItem(item("重新居中",#selector(homeMenuRecenter),"r"))
+        file.addItem(item("重新校准…",#selector(recalibrate)))
+        let disconnect=item("断开连接",#selector(disconnectClosedCase));file.addItem(disconnect);disconnectMenuItem=disconnect
         file.addItem(.separator())
-        let developer=NSMenu(title:"Developer"),developerItem=NSMenuItem(title:"Developer",action:nil,keyEquivalent:"")
+        let developer=NSMenu(title:"开发者"),developerItem=NSMenuItem(title:"开发者",action:nil,keyEquivalent:"")
         developerItem.submenu=developer;file.addItem(developerItem)
-        let macAudio=item("Keep audio on Mac",#selector(toggleMacAudioProtection));macAudio.state = .on
+        let macAudio=item("声音保留在 Mac 上",#selector(toggleMacAudioProtection));macAudio.state = .on
         developer.addItem(macAudio);macAudioProtectionItem=macAudio
-        developer.addItem(item("Tap Test…",#selector(showTapTest)))
-        let edit=addMenu("Edit")
-        edit.addItem(withTitle:"Undo",action:Selector(("undo:")),keyEquivalent:"z")
-        let redo=edit.addItem(withTitle:"Redo",action:Selector(("redo:")),keyEquivalent:"z");redo.keyEquivalentModifierMask=[.command,.shift]
+        developer.addItem(item("轻敲测试…",#selector(showTapTest)))
+        let edit=addMenu("编辑")
+        edit.addItem(withTitle:"撤销",action:Selector(("undo:")),keyEquivalent:"z")
+        let redo=edit.addItem(withTitle:"重做",action:Selector(("redo:")),keyEquivalent:"z");redo.keyEquivalentModifierMask=[.command,.shift]
         edit.addItem(.separator())
-        edit.addItem(withTitle:"Cut",action:#selector(NSText.cut(_:)),keyEquivalent:"x")
-        edit.addItem(withTitle:"Copy",action:#selector(NSText.copy(_:)),keyEquivalent:"c")
-        edit.addItem(withTitle:"Paste",action:#selector(NSText.paste(_:)),keyEquivalent:"v")
-        edit.addItem(withTitle:"Select All",action:#selector(NSText.selectAll(_:)),keyEquivalent:"a")
-        let view=addMenu("View")
-        view.addItem(item("Pointer",#selector(showPointerPage),"1"))
-        let windows=addMenu("Window")
-        windows.addItem(withTitle:"Minimize",action:#selector(NSWindow.performMiniaturize(_:)),keyEquivalent:"m")
-        windows.addItem(withTitle:"Close",action:#selector(NSWindow.performClose(_:)),keyEquivalent:"w")
+        edit.addItem(withTitle:"剪切",action:#selector(NSText.cut(_:)),keyEquivalent:"x")
+        edit.addItem(withTitle:"拷贝",action:#selector(NSText.copy(_:)),keyEquivalent:"c")
+        edit.addItem(withTitle:"粘贴",action:#selector(NSText.paste(_:)),keyEquivalent:"v")
+        edit.addItem(withTitle:"全选",action:#selector(NSText.selectAll(_:)),keyEquivalent:"a")
+        let view=addMenu("显示")
+        view.addItem(item("指向",#selector(showPointerPage),"1"))
+        let windows=addMenu("窗口")
+        windows.addItem(withTitle:"最小化",action:#selector(NSWindow.performMiniaturize(_:)),keyEquivalent:"m")
+        windows.addItem(withTitle:"关闭",action:#selector(NSWindow.performClose(_:)),keyEquivalent:"w")
         windows.addItem(.separator())
         windows.addItem(item("AirPointer",#selector(showWindow),"0"))
         NSApp.windowsMenu=windows

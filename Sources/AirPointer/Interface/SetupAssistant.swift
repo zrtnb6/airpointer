@@ -30,12 +30,12 @@ final class SetupAssistant:NSObject,NSWindowDelegate {
 
     private enum Action{case none,connect,chooseAirPods,lidClosed,openAccessibility,calibrate,learnTap,reconnect,next,finish}
     private static let copy=[
-        ("Let AirPointer move the pointer","Press Allow to open the Accessibility list, then drag AirPointer into it so it can move the pointer and click."),
-        ("Connect your AirPods","Hold the closed case with both AirPods inside. Connect, then open the lid."),
-        ("Show it where your screen is","Point at three dots — center, right edge, top edge. Hold still on each and it captures automatically. Keep the grip you’ll use."),
-        ("Teach it your tap","Tap the front of the case three times, with a short pause between taps. Hold it the way you’ll point with it."),
+        ("让 AirPointer 移动指针","点按「允许」打开「辅助功能」列表，再把 AirPointer 拖进去，它就能移动指针并点击。"),
+        ("连接你的 AirPods","拿着合上盖的充电盒，两只 AirPods 都在里面。先连接，再打开盖子。"),
+        ("告诉它屏幕在哪里","依次指向三个圆点——中心、右边缘、上边缘。每个点保持不动，它会自动记录。请用之后指向时的握法。"),
+        ("教它认识你的轻敲","在充电盒正面轻敲三次，每次之间稍作停顿。用之后指向时的握法拿着它。"),
     ]
-    private static let connectEffects="Your Mac can’t use your AirPods for audio while connected, so don’t connect during a call. Ending a session uses up diagnostic data on the case and changes some AirPods settings. These changes may last."
+    private static let connectEffects="连接期间 Mac 无法用 AirPods 播放声音，所以通话时不要连接。结束会话会消耗充电盒内的诊断数据，并改动一些 AirPods 设置，这些改动可能一直保留。"
     private var state=SetupState()
     private var everConnected=false
     private var helpDue=false
@@ -59,14 +59,14 @@ final class SetupAssistant:NSObject,NSWindowDelegate {
     private let check=SetupCheck()
     private let note=rkWrap("",13,align:.center)
     private let footer=rkHStack([],spacing:6),footerKey=KeyCap(PointerShortcut.current.label)
-    private let back=RemoteButton("Back",style:.tertiary,height:36)
+    private let back=RemoteButton("返回",style:.tertiary,height:36)
     private let secondary=RemoteButton("",style:.secondary)
     private let primary=RemoteButton("",style:.primary,hint:"Return")
 
     override init() {
         window=SetupWindow(contentRect:NSRect(x:0,y:0,width:560,height:620),styleMask:[.titled,.closable,.miniaturizable,.fullSizeContentView],backing:.buffered,defer:false)
         super.init()
-        window.title="Set Up AirPointer";window.titleVisibility = .hidden
+        window.title="设置 AirPointer";window.titleVisibility = .hidden
         window.titlebarAppearsTransparent=true;window.titlebarSeparatorStyle = .none
         window.isReleasedWhenClosed=false;window.backgroundColor=HomePalette.canvas;window.delegate=self
         build();apply();window.center()
@@ -88,7 +88,7 @@ final class SetupAssistant:NSObject,NSWindowDelegate {
         apply()
         guard changed else{return}
         if let responder=window.firstResponder as? NSView,responder.isHiddenOrHasHiddenAncestor{window.makeFirstResponder(nil)}
-        reveal(page);announce("Step \(next+1) of \(Self.copy.count). \(next==1 ? linkCopy(state.link).0:Self.copy[next].0)")
+        reveal(page);announce("第 \(next+1) 步，共 \(Self.copy.count) 步。\(next==1 ? linkCopy(state.link).0:Self.copy[next].0)")
     }
 
     func update(_ next:SetupState) {
@@ -103,12 +103,12 @@ final class SetupAssistant:NSObject,NSWindowDelegate {
         guard window.isVisible else{return}
         if step==1,old.link != next.link {
             reveal(caseArt)
-            if next.connected && !wasConnected{announce("Connected")}else if next.link != .idle{announce(linkCopy(next.link).0)}
+            if next.connected && !wasConnected{announce("已连接")}else if next.link != .idle{announce(linkCopy(next.link).0)}
         }
-        if step==0,next.accessibilityTrusted,!old.accessibilityTrusted{announce("Allowed")}
-        if step==2,next.calibrated,!next.calibrating,old.calibrating || !old.calibrated{announce("Calibrated")}
-        if step==3,next.taps.learned,!old.taps.learned{announce("Learned")}
-        else if step==3,next.taps.heard != old.taps.heard,next.taps.heard>0{announce("\(next.taps.heard) of \(ClosedCaseTapLearner.taps)")}
+        if step==0,next.accessibilityTrusted,!old.accessibilityTrusted{announce("已允许")}
+        if step==2,next.calibrated,!next.calibrating,old.calibrating || !old.calibrated{announce("已校准")}
+        if step==3,next.taps.learned,!old.taps.learned{announce("已学会")}
+        else if step==3,next.taps.heard != old.taps.heard,next.taps.heard>0{announce("\(next.taps.heard)/\(ClosedCaseTapLearner.taps)")}
         if let following=Self.following(step,from:old,to:next){
             // Accessibility is granted over in System Settings, so setup comes back to the front.
             if step==0{window.makeKeyAndOrderFront(nil);NSApp.activate(ignoringOtherApps:true)}
@@ -154,8 +154,8 @@ final class SetupAssistant:NSObject,NSWindowDelegate {
         let root=NSView(),rule=RemoteRule()
         window.contentView=root
         for view in [steps,page,rule,back,secondary,primary] as [NSView]{view.translatesAutoresizingMaskIntoConstraints=false;root.addSubview(view)}
-        let lead=rkLabel("AirPointer lives in the menu bar. Press",13,.regular,.secondaryLabelColor)
-        let tail=rkLabel("to pause from any app.",13,.regular,.secondaryLabelColor)
+        let lead=rkLabel("AirPointer 常驻菜单栏。按",13,.regular,.secondaryLabelColor)
+        let tail=rkLabel("即可在任何 App 中暂停。",13,.regular,.secondaryLabelColor)
         for view in [lead,footerKey,tail]{view.setAccessibilityElement(false);footer.addArrangedSubview(view)}
         footer.setAccessibilityElement(true);footer.setAccessibilityRole(.staticText)
         let status=rkVStack([chip,check,note,footer],spacing:12,align:.centerX)
@@ -210,47 +210,47 @@ final class SetupAssistant:NSObject,NSWindowDelegate {
         else if helpTimer==nil,!helpDue{helpTimer=Timer.scheduledTimer(withTimeInterval:6,repeats:false){[weak self] _ in self?.helpTimer=nil;self?.helpDue=true;self?.apply()}}
         steps.set(current:step,done:[s.accessibilityTrusted,everConnected,s.calibrated && !s.calibrating,s.taps.learned])
         var art:NSView=caseArt,chipText:String?,dot=false,checkText:String?,noteText:String?
-        var main=("Continue",Action.next),alt:(String,Action)?
+        var main=("继续",Action.next),alt:(String,Action)?
         var copy=Self.copy[step]
         caseArt.holdProgress=nil
         switch step {
         case 0:
             art=access;access.on=s.accessibilityTrusted
-            if s.accessibilityTrusted{checkText="Allowed"}else{main=("Allow",.openAccessibility);alt=("Skip for now",.next)}
+            if s.accessibilityTrusted{checkText="已允许"}else{main=("允许",.openAccessibility);alt=("暂时跳过",.next)}
         case 1:
             // Closed to start, the lid opening, close it, turn it upright: each sub-step brings its own words and art.
             copy=linkCopy(s.link)
             switch s.link {
             case .idle:
-                caseArt.step = .closed;main=("Connect",.connect);var problem=s.problem
+                caseArt.step = .closed;main=("连接",.connect);var problem=s.problem
                 // Setup has no Settings to send them to, so the choice comes from here.
-                if s.problem==ClosedCaseAirPods.Choice.several.failure{main=("Choose AirPods…",.chooseAirPods);problem="More than one pair of AirPods Pro is paired with this Mac. Choose which to use."}
+                if s.problem==ClosedCaseAirPods.Choice.several.failure{main=("选择 AirPods…",.chooseAirPods);problem="这台 Mac 配对了多副 AirPods Pro，请选择要使用哪一副。"}
                 // A problem doesn't replace the effects: the person hasn't connected yet.
                 noteText=[problem,Self.connectEffects].compactMap{$0}.joined(separator:"\n\n")
-            case .openLid:caseArt.step = .opening;chipText="Waiting for the lid";main=("Connecting…",.none)
+            case .openLid:caseArt.step = .opening;chipText="等待开盖";main=("正在连接…",.none)
             case .connecting:
-                caseArt.step = .open;chipText="Looking for your AirPods…";main=("Connecting…",.none)
-                if helpDue{noteText="Not connecting? Lift one AirPod out for a moment and put it back."}
-            case .closeLid:caseArt.step = .close;chipText="Connected";dot=true;main=("Lid Closed",.lidClosed)
-            case .turnUpright:caseArt.step = .turn;chipText="Connected";dot=true;main=("Continue",.none)
-            case .holdStill:caseArt.step = .closed;caseArt.holdProgress=CGFloat(s.holdProgress);chipText="Keep it still";main=("Continue",.none)
-            case .connected:caseArt.step = .point;chipText="Connected";dot=true
+                caseArt.step = .open;chipText="正在寻找你的 AirPods…";main=("正在连接…",.none)
+                if helpDue{noteText="连不上？取出其中一只 AirPod 等一会儿，再放回去。"}
+            case .closeLid:caseArt.step = .close;chipText="已连接";dot=true;main=("已合盖",.lidClosed)
+            case .turnUpright:caseArt.step = .turn;chipText="已连接";dot=true;main=("继续",.none)
+            case .holdStill:caseArt.step = .closed;caseArt.holdProgress=CGFloat(s.holdProgress);chipText="保持不动";main=("继续",.none)
+            case .connected:caseArt.step = .point;chipText="已连接";dot=true
             }
         case 2:
             art=targets;targets.done=s.calibrated && !s.calibrating
-            if s.calibrating{main=("Calibrating…",.none)}
-            else if !s.connected{main=("Connect Again",.reconnect);noteText=s.problem ?? "The case disconnected. Connect again, then open the lid."}
-            else if s.calibrated{checkText="Calibrated";alt=("Calibrate Again",.calibrate)}
-            else{main=("Start Calibration",.calibrate)}
+            if s.calibrating{main=("正在校准…",.none)}
+            else if !s.connected{main=("重新连接",.reconnect);noteText=s.problem ?? "充电盒已断开。请重新连接，然后打开盖子。"}
+            else if s.calibrated{checkText="已校准";alt=("重新校准",.calibrate)}
+            else{main=("开始校准",.calibrate)}
         case 3:
             art=tapArt;tapArt.heard=s.taps.heard
-            if !s.connected{main=("Connect Again",.reconnect);noteText=s.problem ?? "The case disconnected. Connect again, then open the lid."}
+            if !s.connected{main=("重新连接",.reconnect);noteText=s.problem ?? "充电盒已断开。请重新连接，然后打开盖子。"}
             // Teaching the tap is the last step, so once it's done the primary finishes setup.
-            else if s.taps.learned{checkText="Learned";main=("Finish",.finish);alt=("Tap Again",.learnTap)}
-            else if s.taps.failed{main=("Try Again",.learnTap);alt=("Skip for Now",.finish);noteText="Those taps went different ways. Hold the case still and tap the same spot each time."}
+            else if s.taps.learned{checkText="已学会";main=("完成",.finish);alt=("重新轻敲",.learnTap)}
+            else if s.taps.failed{main=("再试一次",.learnTap);alt=("暂时跳过",.finish);noteText="刚才几次轻敲方向不一致。拿稳充电盒，每次都敲同一个位置。"}
             else{
-                main=("Listening…",.none);alt=("Skip for Now",.finish)
-                if s.taps.soft{noteText="Tap a little firmer."}else if s.taps.mixed{noteText="Tap the same spot each time."}
+                main=("正在聆听…",.none);alt=("暂时跳过",.finish)
+                if s.taps.soft{noteText="敲得再重一点。"}else if s.taps.mixed{noteText="每次都敲同一个位置。"}
             }
         default:break
         }
@@ -261,7 +261,7 @@ final class SetupAssistant:NSObject,NSWindowDelegate {
         show(note,noteText != nil);if let noteText{rkSetText(note,noteText)}
         show(footer,main.1 == .finish)
         if footerKey.text != PointerShortcut.current.label{footerKey.text=PointerShortcut.current.label}
-        footer.setAccessibilityLabel("AirPointer lives in the menu bar. Press \(PointerShortcut.current.spoken) to pause from any app.")
+        footer.setAccessibilityLabel("AirPointer 常驻菜单栏。按 \(PointerShortcut.current.spoken) 即可在任何 App 中暂停。")
         show(back,step>0);enable(back,!s.calibrating)
         // The Return chip only shows while Return can act.
         let live=main.1 != .none,hint=live ? "Return":nil
@@ -272,12 +272,12 @@ final class SetupAssistant:NSObject,NSWindowDelegate {
     private func linkCopy(_ link:SetupLink)->(String,String) {
         switch link {
         case .idle:return Self.copy[1]
-        case .openLid:return ("Open the lid","AirPointer connects when you open it. Keep both AirPods inside.")
-        case .connecting:return (Self.copy[1].0,"Keep the lid open for a moment.")
-        case .closeLid:return ("Close the lid","Keep both AirPods inside. AirPointer goes on by itself, or press Return.")
-        case .turnUpright:return ("Turn it upright","Give the closed case a quarter turn clockwise.")
-        case .holdStill:return ("Set it down","Put the closed case on a flat surface for a moment.")
-        case .connected:return ("You’re connected","Keep holding the case like this.")
+        case .openLid:return ("打开盖子","打开盖子时 AirPointer 会连接。两只 AirPods 都留在里面。")
+        case .connecting:return (Self.copy[1].0,"盖子保持打开一会儿。")
+        case .closeLid:return ("合上盖子","两只 AirPods 都留在里面。AirPointer 会自动继续，也可以按 Return。")
+        case .turnUpright:return ("把它竖起来","把合上的充电盒顺时针转四分之一圈。")
+        case .holdStill:return ("放下它","把合上的充电盒在平整桌面上放一会儿。")
+        case .connected:return ("已连接","保持这样拿着充电盒。")
         }
     }
     private func show(_ view:NSView,_ visible:Bool){if view.isHidden == visible{view.isHidden = !visible}}
@@ -348,7 +348,7 @@ private func setupCentered(_ text:String,at point:NSPoint,_ attributes:[NSAttrib
 
 // Allow · Connect · Calibrate · Tap, as done, current and next.
 private final class SetupSteps:NSView {
-    private let names=["Allow","Connect","Calibrate","Tap"]
+    private let names=["允许","连接","校准","轻敲"]
     private var current = -1
     private var done=[Bool](repeating:false,count:4)
     private let font=NSFont.systemFont(ofSize:13),bold=NSFont.systemFont(ofSize:13,weight:.semibold)
@@ -360,7 +360,7 @@ private final class SetupSteps:NSView {
         guard current != self.current || done != self.done else{return}
         self.current=current;self.done=done;needsDisplay=true
         let finished=names.indices.filter{done[$0] && $0 != current}.map{names[$0]}
-        setAccessibilityLabel("Step \(current+1) of \(names.count), \(names[current])"+(finished.isEmpty ? "":". Done: "+finished.joined(separator:", ")))
+        setAccessibilityLabel("第 \(current+1) 步，共 \(names.count) 步：\(names[current])"+(finished.isEmpty ? "":"。已完成："+finished.joined(separator:"、")))
     }
     override func isAccessibilityElement()->Bool{true}
     override func accessibilityRole()->NSAccessibility.Role?{.staticText}
@@ -394,7 +394,7 @@ private final class SetupSteps:NSView {
     }
 }
 
-// "Allowed" and "Calibrated": the done mark with its word.
+// "已允许" and "Calibrated": the done mark with its word.
 private final class SetupCheck:NSView {
     var text=""{didSet{if text != oldValue{setAccessibilityLabel(text);invalidateIntrinsicContentSize();needsDisplay=true}}}
     private let font=NSFont.systemFont(ofSize:13,weight:.semibold)
@@ -419,7 +419,7 @@ private final class SetupAccessArt:NSView {
     init() {
         super.init(frame:.zero)
         setAccessibilityElement(true);setAccessibilityRole(.image)
-        setAccessibilityLabel("AirPointer being dragged into the Accessibility list")
+        setAccessibilityLabel("AirPointer 正被拖入辅助功能列表")
     }
     required init?(coder:NSCoder){fatalError("init(coder:) is not used")}
     override func draw(_ dirtyRect:NSRect) {
@@ -478,11 +478,11 @@ private final class SetupAccessArt:NSView {
 // with the next target in laser red.
 // One dot for each tap heard.
 private final class SetupTapArt:NSView {
-    var heard=0{didSet{if heard != oldValue{needsDisplay=true;setAccessibilityLabel("\(heard) of \(ClosedCaseTapLearner.taps) taps heard")}}}
+    var heard=0{didSet{if heard != oldValue{needsDisplay=true;setAccessibilityLabel("已听到 \(heard)/\(ClosedCaseTapLearner.taps) 次轻敲")}}}
     init() {
         super.init(frame:.zero)
         setAccessibilityElement(true);setAccessibilityRole(.image)
-        setAccessibilityLabel("0 of \(ClosedCaseTapLearner.taps) taps heard")
+        setAccessibilityLabel("已听到 0/\(ClosedCaseTapLearner.taps) 次轻敲")
     }
     required init?(coder:NSCoder){fatalError("init(coder:) is not used")}
     override func draw(_ dirtyRect:NSRect) {
@@ -502,7 +502,7 @@ private final class SetupTargetArt:NSView {
     init() {
         super.init(frame:.zero)
         setAccessibilityElement(true);setAccessibilityRole(.image)
-        setAccessibilityLabel("A screen with three dots: 1 in the center, 2 at the right edge, 3 at the top edge")
+        setAccessibilityLabel("屏幕上有三个圆点：1 在中心，2 在右边缘，3 在上边缘")
     }
     required init?(coder:NSCoder){fatalError("init(coder:) is not used")}
     override func draw(_ dirtyRect:NSRect) {

@@ -305,7 +305,7 @@ final class CaseStepView:NSView {
     }
     var fill:CGFloat=0.86{didSet{needsDisplay=true}}
     // A ring around the case while it's being held still; nil hides it.
-    var holdProgress:CGFloat?{didSet{if holdProgress != oldValue{needsDisplay=true;setAccessibilityValue(holdProgress.map{"\(Int($0*100)) percent"})}}}
+    var holdProgress:CGFloat?{didSet{if holdProgress != oldValue{needsDisplay=true;setAccessibilityValue(holdProgress.map{"\(Int($0*100))%"})}}}
     // Checks and previews pin the loop to one moment.
     var pinnedTime:Double?{didSet{needsDisplay=true;updateMotion()}}
     private var timer:Timer?
@@ -313,12 +313,12 @@ final class CaseStepView:NSView {
     private static let openOnce=1.3
     private var occlusion:NSObjectProtocol?
     private static let labels:[CaseStep:String]=[
-        .closed:"AirPods case with the lid closed",
-        .opening:"The lid opening over both AirPods",
-        .open:"AirPods case with the lid open and both AirPods inside",
-        .close:"The lid closing over both AirPods",
-        .turn:"The closed case turning a quarter turn clockwise to stand upright",
-        .point:"The closed case held upright",
+        .closed:"合上盖的 AirPods 充电盒",
+        .opening:"盖子打开，露出两只 AirPods",
+        .open:"盖子打开、两只 AirPods 在里面的充电盒",
+        .close:"盖子合上，盖住两只 AirPods",
+        .turn:"合上的充电盒顺时针转四分之一圈立起来",
+        .point:"竖着握住的合盖充电盒",
     ]
     init() {
         super.init(frame:.zero);translatesAutoresizingMaskIntoConstraints=false

@@ -20,32 +20,32 @@ private extension MenuBarState.Status {
     var glyph:MenuGlyph{switch self{case .notConnected:return .off;case .connecting:return .pending;case .live:return .live;default:return .idle}}
     var title:String {
         switch self {
-        case .notConnected:return "Not connected"
+        case .notConnected:return "未连接"
         case .connecting:return "Connecting…"
-        case .needsAccess:return "Allow control"
-        case .ready:return "Ready"
-        case .live:return "Pointing"
-        case .paused:return "Paused"
+        case .needsAccess:return "允许控制"
+        case .ready:return "就绪"
+        case .live:return "指向中"
+        case .paused:return "已暂停"
         }
     }
     var spoken:String {
         switch self {
-        case .needsAccess:return "needs permission"
-        case .connecting:return "connecting"
+        case .needsAccess:return "需要权限"
+        case .connecting:return "正在连接"
         default:return title.lowercased()
         }
     }
     // Why the pointer is still, for the aim pad caption.
     var reason:String {
         switch self {
-        case .notConnected:return "AirPods not connected"
-        case .connecting:return "Waiting for AirPods motion…"
-        case .needsAccess:return "Allow Accessibility to move the pointer"
-        case .ready:return "Ready — switch on to start"
+        case .notConnected:return "AirPods 未连接"
+        case .connecting:return "正在等待 AirPods 动作数据…"
+        case .needsAccess:return "请在辅助功能中允许 AirPointer 移动指针"
+        case .ready:return "就绪 — 打开开关即可开始"
         case .live:return ""
         case .paused(let why):
             let why=why.trimmingCharacters(in:.whitespacesAndNewlines)
-            return why.isEmpty || why == "Paused" ? "Paused":why.hasPrefix("Paused") ? why:"Paused — \(why)"
+            return why.isEmpty || why == "Paused" ? "已暂停":"已暂停 — \(why)"
         }
     }
 }
@@ -209,8 +209,8 @@ final class MenuBarContentController:NSViewController {
     private let power=InkSwitch()
     private let detail=rkLabel("",12,.regular,.secondaryLabelColor)
     private let pad=AimPadView()
-    private let recenter=RemoteButton("Recenter",style:.secondary,symbol:"scope",height:32)
-    private let pause=RemoteButton("Pause",style:.secondary,hint:PointerShortcut.current.label,symbol:"pause.fill",height:32)
+    private let recenter=RemoteButton("重新居中",style:.secondary,symbol:"scope",height:32)
+    private let pause=RemoteButton("暂停",style:.secondary,hint:PointerShortcut.current.label,symbol:"pause.fill",height:32)
     private let speed=NSSlider(value:1,minValue:0.4,maxValue:2.4,target:nil,action:nil)
     private var powerHeld:CFTimeInterval=0,speedHeld:CFTimeInterval=0
     private var layoutKey=""
@@ -231,7 +231,7 @@ final class MenuBarContentController:NSViewController {
 
         let title=rkLabel("AirPointer",15,.semibold)
         title.setContentCompressionResistancePriority(.required,for:.horizontal)
-        power.setAccessibilityLabel("Pointer control")
+        power.setAccessibilityLabel("指针控制")
         power.onChange={[weak self] _ in self?.hold(\.powerHeld);self?.onCommand?(.toggleControl)}
         let header=rkHStack([title,chip,rkSpacer(),power],spacing:8)
         header.setCustomSpacing(10,after:title)
@@ -244,9 +244,9 @@ final class MenuBarContentController:NSViewController {
         let buttons=rkHStack([recenter,pause],spacing:8);buttons.distribution = .fillEqually
 
         speed.target=self;speed.action=#selector(speedChanged);speed.isContinuous=true
-        speed.trackFillColor=menuFill;speed.setAccessibilityLabel("Pointer speed")
+        speed.trackFillColor=menuFill;speed.setAccessibilityLabel("指针速度")
         speed.setContentHuggingPriority(.init(1),for:.horizontal)
-        let slow=rkLabel("Slow",12,.regular,.secondaryLabelColor),fast=rkLabel("Fast",12,.regular,.secondaryLabelColor)
+        let slow=rkLabel("慢",12,.regular,.secondaryLabelColor),fast=rkLabel("快",12,.regular,.secondaryLabelColor)
         for label in [slow,fast]{label.setContentHuggingPriority(.required,for:.horizontal);label.setAccessibilityElement(false)}
         let speedRow=rkHStack([slow,speed,fast],spacing:10)
 
@@ -261,9 +261,9 @@ final class MenuBarContentController:NSViewController {
         let rule=RemoteRule();rule.translatesAutoresizingMaskIntoConstraints=false;body.addSubview(rule)
         let quitRule=RemoteRule();quitRule.translatesAutoresizingMaskIntoConstraints=false
         menuRows=[
-            MenuRow("Open AirPointer",.open,target:self),MenuRow("Calibrate…",.calibrate,target:self),
-            MenuRow("Disconnect",.disconnect,target:self),MenuRow("Settings…",.settings,key:",",target:self),
-            MenuRow("Quit AirPointer",.quit,key:"q",target:self),
+            MenuRow("打开 AirPointer",.open,target:self),MenuRow("校准…",.calibrate,target:self),
+            MenuRow("断开连接",.disconnect,target:self),MenuRow("设置…",.settings,key:",",target:self),
+            MenuRow("退出 AirPointer",.quit,key:"q",target:self),
         ]
         let footer=rkVStack(Array(menuRows[0..<4])+[quitRule,menuRows[4]],spacing:0)
         for row in menuRows{row.widthAnchor.constraint(equalTo:footer.widthAnchor).isActive=true}
@@ -305,7 +305,7 @@ final class MenuBarContentController:NSViewController {
             let reason=status.reason
             pad.caption=menuFit(reason,inner-24,.systemFont(ofSize:11,weight:.medium))
             pad.toolTip=reason.isEmpty ? nil:reason
-            pad.setAccessibilityLabel(live ? "Pointer preview, live":"Pointer preview. \(reason)")
+            pad.setAccessibilityLabel(live ? "指针预览，实时":"指针预览。\(reason)")
             // A still pointer rests at the center; a paused one stays where it was aimed.
             if !live{if case .paused=status{}else{pad.point=CGPoint(x:0.5,y:0.5)}}
             if recenter.isEnabled != status.connected{recenter.isEnabled=status.connected}
@@ -319,7 +319,7 @@ final class MenuBarContentController:NSViewController {
         if detail.toolTip != state.detail{detail.toolTip=state.detail.isEmpty ? nil:state.detail}
         if detail.isHidden != state.detail.isEmpty{detail.isHidden=state.detail.isEmpty}
         if now>=speedHeld && abs(speed.doubleValue-state.speed)>0.0001{speed.doubleValue=state.speed}
-        let spoken=String(format:"%.1f times normal",speed.doubleValue)
+        let spoken=String(format:"是正常速度的 %.1f 倍",speed.doubleValue)
         if speed.accessibilityValueDescription() != spoken{speed.setAccessibilityValueDescription(spoken)}
         // Disconnect is there only while the closed case is connected.
         if let row=menuRows.first(where:{$0.command == .disconnect}),row.isHidden == state.canDisconnect{row.isHidden = !state.canDisconnect}

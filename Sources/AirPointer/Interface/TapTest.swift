@@ -78,21 +78,21 @@ struct TapTestRun {
         var counts:[String:Int]=[:]
         for missed in Set(0..<Self.cues).subtracting(hits){
             let why=rejections.last{cue(at:$0.t)==missed}?.why
-            counts[why.map(Self.reason) ?? "no tap detected",default:0]+=1
+            counts[why.map(Self.reason) ?? "未检测到轻敲",default:0]+=1
         }
         return counts
     }
     static func reason(_ why:String)->String{
-        if why.contains("not still") || why.contains("just before"){return "the case wasn’t still"}
-        if why.contains("not on the front"){return "the jolt wasn’t on the front"}
-        if why.contains("too soft"){return "too soft"}
-        return "other"
+        if why.contains("not still") || why.contains("just before"){return "充电盒当时没稳住"}
+        if why.contains("not on the front"){return "撞击不在正面"}
+        if why.contains("too soft"){return "敲得太轻"}
+        return "其他"
     }
     var summary:String{
         var lines=[String]()
-        if !misses.isEmpty{lines.append("Missed: "+misses.sorted{$0.value>$1.value}.map{"\($0.key) (\($0.value))"}.joined(separator:", ")+".")}
-        lines.append("Tap fast: \(quickHits) of \(Self.quickTaps). Tap then swing: \(moveHits.count) of \(Self.moveCues), \(moveExtra) extra, a real swing on \(swung.count).")
-        lines.append("\(extraClicks) other extra \(extraClicks==1 ? "click":"clicks"). \(falseClicks) false \(falseClicks==1 ? "click":"clicks") in \(Int(Self.pointingFor)) s of pointing.")
+        if !misses.isEmpty{lines.append("漏掉： "+misses.sorted{$0.value>$1.value}.map{"\($0.key)（\($0.value)）"}.joined(separator:"，" )+"。")}
+        lines.append("快速连敲：\(quickHits)/\(Self.quickTaps)。轻敲后甩动：\(moveHits.count)/\(Self.moveCues)，多出 \(moveExtra) 次，真正甩动的有 \(swung.count) 次。")
+        lines.append("另有 \(extraClicks) 次多余点击。\(Int(Self.pointingFor)) 秒指向中出现 \(falseClicks) 次误点击。")
         return lines.joined(separator:" ")
     }
     var record:[String:Any]{
@@ -112,14 +112,14 @@ func runTapTestChecks()throws{
     try expect(run.phase(at:quick+5) == .getMove(left:3) && run.phase(at:move) == .move(cue:0) && run.phase(at:pointing-0.01) == .move(cue:4),"Five swing cues run 2.5 seconds apart.")
     try expect(run.phase(at:pointing) == .point(left:30) && run.phase(at:175.5) == .done,"Thirty seconds of pointing end the test.")
     try expect(run.phase(at:quick).label == "quick" && run.phase(at:pointing+1).label == "pointing" && run.phase(at:100).label==nil,"The log names each step but not the first countdown.")
-    try expect(run.hits.isEmpty && run.misses == ["no tap detected":10],"A silent run misses every cue.")
+    try expect(run.hits.isEmpty && run.misses == ["未检测到轻敲":10],"A silent run misses every cue.")
     for k in 0..<8{run.click(at:cue+Double(k)*2+0.6)}
     run.click(at:cue+0.9)
     run.rejected(at:cue+16.5,"sudden 0.31 g, not still before it")
     run.rejected(at:cue+18.5,"not on the front, alignment 0.71, jolt 0.34 g")
     try expect(run.hits.count==8,"Each cue with a click is a hit.")
     try expect(run.extraClicks==1,"A second click on one cue is extra.")
-    try expect(run.misses == ["the case wasn’t still":1,"the jolt wasn’t on the front":1],"A miss says what turned the jolt down.")
+    try expect(run.misses == ["充电盒当时没稳住":1,"撞击不在正面":1],"A miss says what turned the jolt down.")
     run.click(at:quick-0.1);for k in 1..<7{run.click(at:quick+Double(k)*0.3)}
     try expect(run.quickHits==7,"Fast taps are counted, including one just ahead of the step.")
     for k in 0..<2{run.click(at:quick+3+Double(k)*0.3)}
@@ -165,9 +165,9 @@ final class TapTestWindow:NSObject,NSWindowDelegate {
     private(set) var stopped:String?
     private let liveSession:()->ClosedCaseSession?
     private weak var session:ClosedCaseSession?
-    private let chip=StatusChip(),title=rkLabel("Tap test",22,.bold),instruction=rkWrap("",13)
+    private let chip=StatusChip(),title=rkLabel("轻敲测试",22,.bold),instruction=rkWrap("",13)
     private let prompt=rkLabel("",40,.bold,.white),progress=rkLabel("",13,.regular,NSColor.white.withAlphaComponent(0.7)),dots=TapTestDots()
-    private let primary=RemoteButton("Start Test")
+    private let primary=RemoteButton("开始测试")
     private var timer:Timer?,announced:String?
     private var totals=(hits:0,cues:0,quick:0,quickAsked:0,move:0,moveCues:0,extra:0,moveExtra:0,falseClicks:0,seconds:0.0)
     static let results=airPointerDataFolder.appendingPathComponent("TapTests.jsonl")
@@ -177,13 +177,13 @@ final class TapTestWindow:NSObject,NSWindowDelegate {
         super.init()
         // Measured at no width, a long instruction would stretch the window.
         instruction.preferredMaxLayoutWidth=432
-        window.title="AirPointer · Tap Test";window.delegate=self;window.isReleasedWhenClosed=false
+        window.title="AirPointer · 轻敲测试";window.delegate=self;window.isReleasedWhenClosed=false
         let stage=RemoteSurface(HomePalette.stage,radius:12);stage.translatesAutoresizingMaskIntoConstraints=false
         let inner=rkVStack([prompt,progress,dots],spacing:10,align:.centerX);inner.translatesAutoresizingMaskIntoConstraints=false
         stage.addSubview(inner)
         NSLayoutConstraint.activate([inner.centerXAnchor.constraint(equalTo:stage.centerXAnchor),inner.centerYAnchor.constraint(equalTo:stage.centerYAnchor),stage.heightAnchor.constraint(equalToConstant:170)])
         primary.target=self;primary.action=#selector(primaryClicked);primary.keyEquivalent="\r"
-        let top=rkHStack([rkLabel("DEVELOPER",11,.semibold,.secondaryLabelColor),rkSpacer(),chip],spacing:8)
+        let top=rkHStack([rkLabel("开发者",11,.semibold,.secondaryLabelColor),rkSpacer(),chip],spacing:8)
         let actions=rkHStack([rkSpacer(),primary],spacing:10)
         let column=rkVStack([top,title,instruction,stage,rkSpacer(),actions],spacing:12)
         column.setCustomSpacing(16,after:top);column.setCustomSpacing(20,after:instruction)
@@ -204,12 +204,12 @@ final class TapTestWindow:NSObject,NSWindowDelegate {
     private func tick(){
         let now=ProcessInfo.processInfo.systemUptime
         if running,let aim=session?.aimPoint{run?.aim(at:now,aim)}
-        if running,session?.stage != .pointing{finish(stoppedBecause:"Pointing stopped, so the test ended. Start pointing, then run it again.")}
+        if running,session?.stage != .pointing{finish(stoppedBecause:"指向已停止，测试结束。请先开始指向，再运行一次。")}
         else if running,let run,now>=run.end{finish(stoppedBecause:nil)}
         sync(now:now)
     }
     @objc private func primaryClicked(){
-        if running{finish(stoppedBecause:"Test cancelled.");sync(now:ProcessInfo.processInfo.systemUptime);return}
+        if running{finish(stoppedBecause:"测试已取消。");sync(now:ProcessInfo.processInfo.systemUptime);return}
         guard let live=liveSession(),live.stage == .pointing else{return}
         stopped=nil;session=live;announced=nil
         run=TapTestRun(start:ProcessInfo.processInfo.systemUptime)
@@ -251,57 +251,57 @@ final class TapTestWindow:NSObject,NSWindowDelegate {
         progress.isHidden=false
         switch phase {
         case .getReady(let left):
-            chip.set("Get ready",dot:false);rkSetText(title,"Get ready");rkSetText(instruction,"Hold the case the way you normally point with it.")
-            prompt.stringValue=String(Int(left.rounded(.up)));progress.stringValue="Tap once on each cue"
+            chip.set("准备",dot:false);rkSetText(title,"准备");rkSetText(instruction,"用你平时指向的握法拿住充电盒。")
+            prompt.stringValue=String(Int(left.rounded(.up)));progress.stringValue="每次提示轻敲一下"
             primary.title="Cancel"
         case .tap(let cue):
-            chip.set("Tapping",live:true);rkSetText(title,"Tap once on each cue");rkSetText(instruction,"Tap the front of the case when the number changes.")
-            prompt.stringValue="Tap";progress.stringValue="\(cue+1) of \(TapTestRun.cues)";dots.current=cue
+            chip.set("轻敲中",live:true);rkSetText(title,"每次提示轻敲一下");rkSetText(instruction,"数字变化时轻敲充电盒正面。")
+            prompt.stringValue="轻敲";progress.stringValue="\(cue+1) of \(TapTestRun.cues)";dots.current=cue
             primary.title="Cancel"
         case .getQuick(let left):
-            chip.set("Get ready",dot:false);rkSetText(title,"Next: tap fast");rkSetText(instruction,"Tap the front \(TapTestRun.quickTaps) times, as fast as feels natural. Don’t wait between taps.")
-            prompt.stringValue="Tap fast in \(Int(left.rounded(.up)))";progress.stringValue="\(TapTestRun.quickTaps) quick taps";dots.isHidden=true
+            chip.set("准备",dot:false);rkSetText(title,"下一步：快速连敲");rkSetText(instruction,"在正面轻敲 \(TapTestRun.quickTaps) 次，自然快就行，中间别停。")
+            prompt.stringValue="\(Int(left.rounded(.up))) 秒后连敲";progress.stringValue="\(TapTestRun.quickTaps) 次快速轻敲";dots.isHidden=true
             primary.title="Cancel"
         case .quick:
-            chip.set("Tapping",live:true);rkSetText(title,"Tap fast");rkSetText(instruction,"Tap the front \(TapTestRun.quickTaps) times, as fast as feels natural. Don’t wait between taps.")
-            prompt.stringValue="Tap fast";progress.stringValue="\(run?.quickHits ?? 0) of \(TapTestRun.quickTaps) clicked"
+            chip.set("轻敲中",live:true);rkSetText(title,"快速连敲");rkSetText(instruction,"在正面轻敲 \(TapTestRun.quickTaps) 次，自然快就行，中间别停。")
+            prompt.stringValue="连敲";progress.stringValue="已点击 \(run?.quickHits ?? 0)/\(TapTestRun.quickTaps)"
             dots.count=TapTestRun.quickTaps;dots.hits=Set(0..<(run?.quickHits ?? 0))
             primary.title="Cancel"
         case .getMove(let left):
-            chip.set("Get ready",dot:false);rkSetText(title,"Next: tap, then swing away");rkSetText(instruction,"On each cue, tap the front, then swing the pointer across the screen right away.")
-            prompt.stringValue="Tap + swing in \(Int(left.rounded(.up)))";progress.stringValue="\(TapTestRun.moveCues) taps";dots.isHidden=true
+            chip.set("准备",dot:false);rkSetText(title,"下一步：轻敲后甩开");rkSetText(instruction,"每次提示时先轻敲正面，然后立刻把指针甩到屏幕另一侧。")
+            prompt.stringValue="\(Int(left.rounded(.up))) 秒后轻敲+甩动";progress.stringValue="\(TapTestRun.moveCues) 次轻敲";dots.isHidden=true
             primary.title="Cancel"
         case .move(let cue):
-            chip.set("Tapping",live:true);rkSetText(title,"Tap, then swing away");rkSetText(instruction,"On each cue, tap the front, then swing the pointer across the screen right away.")
-            prompt.stringValue="Tap + swing";progress.stringValue="\(cue+1) of \(TapTestRun.moveCues)"
+            chip.set("轻敲中",live:true);rkSetText(title,"轻敲后甩开");rkSetText(instruction,"每次提示时先轻敲正面，然后立刻把指针甩到屏幕另一侧。")
+            prompt.stringValue="轻敲+甩动";progress.stringValue="\(cue+1) of \(TapTestRun.moveCues)"
             dots.count=TapTestRun.moveCues;dots.hits=run?.moveHits ?? [];dots.current=cue
             primary.title="Cancel"
         case .point(let left):
-            chip.set("Pointing",live:true);rkSetText(title,"Don’t tap now");rkSetText(instruction,"Point around the screen the way you normally would, and don’t touch the front of the case.")
-            prompt.stringValue="Just point";progress.stringValue="\(Int(left.rounded(.up))) s left";dots.isHidden=true
+            chip.set("指向中",live:true);rkSetText(title,"现在不要轻敲");rkSetText(instruction,"像平常一样在屏幕上随意指向，手不要碰充电盒正面。")
+            prompt.stringValue="只指向";progress.stringValue="还剩 \(Int(left.rounded(.up))) 秒";dots.isHidden=true
             primary.title="Cancel"
         default:
-            primary.title=run==nil ? "Start Test":"Run Again"
+            primary.title=run==nil ? "开始测试":"再测一次"
             let pointing=liveSession()?.stage == .pointing
             primary.isEnabled=pointing
             if let run,stopped==nil{
                 dots.finished=true
-                chip.set("Done",dot:false);rkSetText(title,"\(run.hits.count) of \(TapTestRun.cues) taps clicked")
+                chip.set("完成",dot:false);rkSetText(title,"\(TapTestRun.cues) 次轻敲中点击了 \(run.hits.count) 次")
                 var text=run.summary
-                if totals.cues>TapTestRun.cues{text+=" All runs so far: \(totals.hits) of \(totals.cues) taps, \(totals.quick) of \(totals.quickAsked) fast, \(totals.move) of \(totals.moveCues) with a swing, \(totals.extra+totals.moveExtra) extra, \(totals.falseClicks) false in \(Int(totals.seconds)) s."}
+                if totals.cues>TapTestRun.cues{text+=" 累计：\(totals.cues) 次轻敲中 \(totals.hits) 次，快速 \(totals.quickAsked) 次中 \(totals.quick) 次，带甩动 \(totals.moveCues) 次中 \(totals.move) 次，多余 \(totals.extra+totals.moveExtra) 次，\(Int(totals.seconds)) 秒内误点击 \(totals.falseClicks) 次。"}
                 rkSetText(instruction,text)
-                prompt.stringValue="\(run.hits.count)/\(TapTestRun.cues)";progress.stringValue="\(run.quickHits)/\(TapTestRun.quickTaps) fast · \(run.moveHits.count)/\(TapTestRun.moveCues) with a swing · \(run.falseClicks) false"
+                prompt.stringValue="\(run.hits.count)/\(TapTestRun.cues)";progress.stringValue="快速 \(run.quickHits)/\(TapTestRun.quickTaps) · 带甩动 \(run.moveHits.count)/\(TapTestRun.moveCues) · 误点击 \(run.falseClicks)"
             }else{
-                chip.set(pointing ? "Ready":"Not pointing",dot:pointing);rkSetText(title,"Tap test")
-                rkSetText(instruction,stopped ?? (pointing ? "Four steps: tap on each cue, tap fast, tap then swing away, then point without tapping. It takes about 75 seconds, and your taps won’t click anything.":"Start pointing with the closed case first, then run the test."))
-                prompt.stringValue="\(TapTestRun.cues+TapTestRun.quickTaps+TapTestRun.moveCues) taps";progress.stringValue="then \(Int(TapTestRun.pointingFor)) seconds of pointing"
+                chip.set(pointing ? "就绪":"未指向",dot:pointing);rkSetText(title,"轻敲测试")
+                rkSetText(instruction,stopped ?? (pointing ? "共四步：每次提示轻敲、快速连敲、轻敲后甩开、然后只指向不轻敲。大约 75 秒，测试中的轻敲不会真的点击任何东西。":"请先用合盖的充电盒开始指向，然后再运行测试。"))
+                prompt.stringValue="\(TapTestRun.cues+TapTestRun.quickTaps+TapTestRun.moveCues) 次轻敲";progress.stringValue="之后是 \(Int(TapTestRun.pointingFor)) 秒指向"
             }
             return
         }
         primary.isEnabled=true
     }
     func windowWillClose(_ notification:Notification){
-        if running{finish(stoppedBecause:"Test cancelled.")}
+        if running{finish(stoppedBecause:"测试已取消。")}
         timer?.invalidate();timer=nil
     }
 }

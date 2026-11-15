@@ -75,7 +75,7 @@ private final class AccessibilityGuideView:NSView {
         let badge=RemoteSurface(HomePalette.ink,radius:14),arrow=rkSymbolView("arrow.up",13,HomePalette.canvas,.semibold)
         badge.translatesAutoresizingMaskIntoConstraints=false;arrow.translatesAutoresizingMaskIntoConstraints=false
         badge.addSubview(arrow)
-        let words=rkVStack([rkLabel("Drag AirPointer into the list above",13,.semibold),rkLabel("Already listed? Just turn on its switch.",12,.regular,.secondaryLabelColor)],spacing:2)
+        let words=rkVStack([rkLabel("把 AirPointer 拖进上面的列表",13,.semibold),rkLabel("已经在列表里？直接打开它的开关即可。",12,.regular,.secondaryLabelColor)],spacing:2)
         let top=rkHStack([badge,words],spacing:12),card=AccessibilityGuideCard()
         let column=rkVStack([top,card],spacing:12)
         rkPin(column,in:self,insets:NSEdgeInsets(top:14,left:14,bottom:14,right:14))
@@ -107,7 +107,7 @@ private final class AccessibilityGuideCard:NSView,NSDraggingSource {
         rkPin(row,in:self,insets:NSEdgeInsets(top:12,left:12,bottom:12,right:16))
         NSLayoutConstraint.activate([icon.widthAnchor.constraint(equalToConstant:32),icon.heightAnchor.constraint(equalToConstant:32)])
         setAccessibilityElement(true);setAccessibilityRole(.image)
-        setAccessibilityLabel("AirPointer. Drag this into the Accessibility list above.")
+        setAccessibilityLabel("AirPointer。把它拖进上面的辅助功能列表。")
     }
     required init?(coder:NSCoder){fatalError("init(coder:) is not used")}
     override var mouseDownCanMoveWindow:Bool{false}

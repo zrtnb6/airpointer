@@ -20,7 +20,7 @@ func runHomeChecks()throws {
             return parts
         }.joined(separator:" · ")
         // The tap's click sound is the one sound the pointer makes.
-        for word in ["pointer only","\\bmic(rophone)?\\b","\\bgestures?\\b","\\bpractice\\b","(?<!click )\\bsound\\b"] {
+        for word in ["仅指针","麦克风","手势","练习"] {
             try require(text.range(of:word,options:[.regularExpression,.caseInsensitive])==nil,"\(surface) still says “\(word)”")
         }
         try require(!views.contains{$0 is NSSegmentedControl || $0.accessibilityRole() == .radioGroup},"\(surface) still offers a choice of modes or sections")
@@ -31,10 +31,10 @@ func runHomeChecks()throws {
 
     // One primary action on the Pointer page, retitled by phase.
     var controlPresses=0;home.onControl={controlPresses+=1}
-    try require(primary().title=="Start Pointing","Ready did not offer Start Pointing")
+    try require(primary().title=="开始指向","Ready did not offer Start Pointing")
     primary().performClick(nil)
     try require(controlPresses==1,"The pointer page's primary action did not reach the app")
-    for (phase,title) in [(HomeControlPhase.running,"Pause"),(.paused("Paused"),"Resume"),(.needsInputs,"Connect AirPods")] {
+    for (phase,title) in [(HomeControlPhase.running,"暂停"),(.paused("Paused"),"继续"),(.needsInputs,"连接 AirPods")] {
         home.updateControl(phase:phase,inputsReady:true)
         try require(primary().title==title,"\(phase) did not expose \(title)")
         try require(content().compactMap{$0 as? RemoteButton}.filter{$0.style == .primary}.count==1,"\(phase) showed more than one primary action")
@@ -97,31 +97,31 @@ func runHomeChecks()throws {
     home.selectSettings()
     try require(home.window.attachedSheet==nil,"Settings opened an overlay")
     let settingsWords=words()
-    try require(settingsWords.lowercased().contains("pointer speed") && !settingsWords.contains("Yaw") && !settingsWords.contains("Pitch") && !settingsWords.contains("Reverse"),"Settings still expose sensor terminology")
+    try require(settingsWords.contains("指针速度") && !settingsWords.contains("Yaw") && !settingsWords.contains("Pitch") && !settingsWords.contains("Reverse"),"Settings still expose sensor terminology")
     try require(!content().compactMap{$0 as? NSPopUpButton}.contains{$0.itemTitles.contains{$0.hasPrefix("Point left")}},"Settings still ask the user to choose axis directions")
     let slider=content().compactMap{$0 as? NSSlider}.first!
     slider.doubleValue=1.6;NSApp.sendAction(slider.action!,to:slider.target,from:slider)
     try require(changedSettings?.speed==1.6,"The speed slider did not preserve its value")
     try retired(content(),"Settings")
-    try require(content().compactMap{$0 as? RemoteButton}.contains{$0.title=="Recalibrate…"},"Settings lost the way to recalibrate")
+    try require(content().compactMap{$0 as? RemoteButton}.contains{$0.title=="重新校准…"},"Settings lost the way to recalibrate")
     // A tap's click sound is on by default and has its own switch.
-    let clickSwitch=content().compactMap{$0 as? InkSwitch}.first{$0.accessibilityLabel()=="Click sound"}
-    try require(settingsWords.contains("Click sound") && clickSwitch?.isOn==true,"Settings lost the click sound switch, or it starts off")
+    let clickSwitch=content().compactMap{$0 as? InkSwitch}.first{$0.accessibilityLabel()=="点击音效"}
+    try require(settingsWords.contains("点击音效") && clickSwitch?.isOn==true,"Settings lost the click sound switch, or it starts off")
     clickSwitch!.setOn(false,animated:false);clickSwitch!.onChange?(false)
     try require(changedSettings?.clickSound==false && changedSettings?.speed==1.6,"The click sound switch did not change only the click sound")
     try require(TapClickSound.shared.loaded,"The app bundle has no tap click sound")
     try require(NotchShimmerSound.shared.loaded,"The app bundle has no notch shimmer")
     try require(Bundle.main.url(forResource:"LICENSE-cuelume",withExtension:"txt") != nil,"The app bundle has no license for its sounds")
-    let gear=home.window.toolbar?.items.first{$0.label=="Settings"}
-    try require(gear?.toolTip?.hasPrefix("Settings")==true,"Settings is not a single toolbar button")
+    let gear=home.window.toolbar?.items.first{$0.label=="设置"}
+    try require(gear?.toolTip?.hasPrefix("设置")==true,"Settings is not a single toolbar button")
     // Pointer and Settings are the only pages, so the toolbar is just the gear: no section tabs.
-    try require(home.window.toolbar!.items.filter{$0.itemIdentifier != .flexibleSpace}.map(\.label)==["Settings"] && home.window.toolbar!.items.allSatisfy{$0.view==nil},"The toolbar still has section tabs")
+    try require(home.window.toolbar!.items.filter{$0.itemIdentifier != .flexibleSpace}.map(\.label)==["设置"] && home.window.toolbar!.items.allSatisfy{$0.view==nil},"The toolbar still has section tabs")
 
     // Without tabs, Settings has its own way back; the pointer never waits for the microphone.
-    content().compactMap{$0 as? RemoteButton}.first{$0.title=="Pointer" && $0.symbolName=="chevron.left"}!.performClick(nil)
-    try require(primary().title=="Resume" || primary().title=="Start Pointing","Settings had no way back to the pointer")
+    content().compactMap{$0 as? RemoteButton}.first{$0.title=="指向" && $0.symbolName=="chevron.left"}!.performClick(nil)
+    try require(primary().title=="继续" || primary().title=="开始指向","Settings had no way back to the pointer")
     home.selectSettings();home.window.onEscape?()
-    try require(primary().title=="Resume" || primary().title=="Start Pointing","Esc did not leave Settings")
+    try require(primary().title=="继续" || primary().title=="开始指向","Esc did not leave Settings")
     // Every step that offers Cancel (esc) answers to it.
     for phase in [HomeControlPhase.running,.connecting,.closedCase(.openLid),.closedCase(.turnUpright),.closedCase(.holdStill)] {
         home.updateControl(phase:phase,inputsReady:false)
@@ -129,7 +129,7 @@ func runHomeChecks()throws {
         try require(controlPresses==before+1,"Esc did nothing during \(phase)")
     }
     home.updateControl(phase:.connecting,inputsReady:false)
-    try require(words().contains("Keep the lid open for a moment.") && !words().contains("sound"),"The pointer’s connection still waited for audio")
+    try require(words().contains("盖子保持打开一会儿。") && !words().contains("音效"),"The pointer’s connection still waited for audio")
     for phase in [HomeControlPhase.needsInputs,.connecting,.needsAccessibility,.ready,.running,.paused("Paused"),.closedCase(.openLid),.closedCase(.closeLid),.closedCase(.turnUpright),.closedCase(.holdStill),.closedCase(.calibrate),.closedCase(.recenter)] {
         home.updateControl(phase:phase,inputsReady:true)
         try retired(content(),"The Pointer page (\(phase))")
@@ -138,12 +138,12 @@ func runHomeChecks()throws {
     try require(primary().hint==PointerShortcut.current.label,"Start Pointing did not show the shortcut")
     home.updateControl(phase:.paused("Paused"),inputsReady:true)
     try require(primary().hint==PointerShortcut.current.label,"Resume did not show the shortcut")
-    try require(!content().contains{$0.accessibilityLabel()?.contains("to pause from any app")==true},"The Pointer page kept its shortcut line")
+    try require(!content().contains{$0.accessibilityLabel()?.contains("可在任何 App 中暂停")==true},"The Pointer page kept its shortcut line")
     home.updateControl(phase:.ready,inputsReady:true)
 
     // The closed case connects on the same page: close the lid, turn it upright, then the dots.
     func stepArt()->CaseStepView?{content().compactMap{$0 as? CaseStepView}.first}
-    for (phase,title,heading,step) in [(HomeControlPhase.closedCase(.closeLid),"Lid Closed","Close the lid",CaseStep.close),(.closedCase(.turnUpright),"Cancel","Turn it upright",.turn),(.closedCase(.holdStill),"Cancel","Set it down",.closed),(.needsInputs,"Connect AirPods","Connect your AirPods",.closed),(.needsAccessibility,"Allow","Allow control",.closed)] {
+    for (phase,title,heading,step) in [(HomeControlPhase.closedCase(.closeLid),"已合盖","合上盖子",CaseStep.close),(.closedCase(.turnUpright),"取消","把它竖起来",.turn),(.closedCase(.holdStill),"取消","放下它",.closed),(.needsInputs,"连接 AirPods","连接你的 AirPods",.closed),(.needsAccessibility,"允许","允许控制",.closed)] {
         home.updateControl(phase:phase,inputsReady:false)
         try require(primary().title==title && words().contains(heading) && stepArt()?.step==step,"\(phase) did not show \(heading), \(title) and its picture")
         try require(content().compactMap{$0 as? RemoteButton}.filter{$0.style == .primary}.count==1,"\(phase) showed more than one primary action")
@@ -152,17 +152,17 @@ func runHomeChecks()throws {
     try require(primary().keyEquivalent=="\r","Lid Closed did not answer Return")
     // Connect with the lid shut waits for it to open, and esc cancels the wait.
     home.updateControl(phase:.closedCase(.openLid),inputsReady:false)
-    try require(primary().title=="Cancel" && primary().keyEquivalent=="\u{1b}" && words().contains("Open the lid") && stepArt()?.step == .opening,"Waiting for the lid did not show Open the lid with an esc Cancel")
+    try require(primary().title=="取消" && primary().keyEquivalent=="\u{1b}" && words().contains("打开盖子") && stepArt()?.step == .opening,"Waiting for the lid did not show Open the lid with an esc Cancel")
     home.updateControl(phase:.closedCase(.calibrate),inputsReady:true)
-    try require(primary().title=="Start Calibration" && primary().keyEquivalent=="" && stepArt()==nil,"Calibration kept the case picture or the Return shortcut")
+    try require(primary().title=="开始校准" && primary().keyEquivalent=="" && stepArt()==nil,"Calibration kept the case picture or the Return shortcut")
     // Saved edges leave one dot, with all three still one click away.
     home.updateControl(phase:.closedCase(.recenter),inputsReady:true)
-    try require(primary().title=="Recenter" && words().contains("Point at the center") && content().compactMap({$0 as? RemoteButton}).contains{$0.title=="Recalibrate…"},
+    try require(primary().title=="重新居中" && words().contains("指向中心") && content().compactMap({$0 as? RemoteButton}).contains{$0.title=="重新校准…"},
                 "Recentering on saved edges hid the way back to all three dots")
     // Pause keeps the closed case connected; Disconnect is its own, quieter action.
-    func disconnectButton()->RemoteButton?{content().compactMap{$0 as? RemoteButton}.first{$0.title=="Disconnect"}}
+    func disconnectButton()->RemoteButton?{content().compactMap{$0 as? RemoteButton}.first{$0.title=="断开连接"}}
     home.updateControl(phase:.paused("Paused"),inputsReady:true)
-    try require(primary().title=="Resume" && words().contains("Resume when you’re ready.") && stepArt()==nil,"A connected pause looked like a lost connection")
+    try require(primary().title=="继续" && words().contains("准备好了就继续。") && stepArt()==nil,"A connected pause looked like a lost connection")
     var disconnects=0;home.onDisconnect={disconnects+=1}
     try require(disconnectButton()?.style == .tertiary,"A connected pause offered no Disconnect, or made it primary")
     disconnectButton()?.performClick(nil)
@@ -176,9 +176,9 @@ func runHomeChecks()throws {
         try require(disconnectButton()==nil,"\(phase) offered Disconnect before there was a connection")
     }
     home.updateControl(phase:.running,inputsReady:true)
-    try require(words().contains("Aim with the case. Tap its front to click."),"Pointing did not say how to aim and click")
-    home.updateControl(phase:.paused("Your AirPods disconnected."),inputsReady:true)
-    try require(words().contains("Your AirPods disconnected."),"A pause reason was not shown")
+    try require(words().contains("用充电盒瞄准，轻敲正面即可点击。"),"Pointing did not say how to aim and click")
+    home.updateControl(phase:.paused("你的 AirPods 已断开。"),inputsReady:true)
+    try require(words().contains("你的 AirPods 已断开。"),"A pause reason was not shown")
 
     // Setup is Allow, Connect, Calibrate and Tap, with no mode to pick. Tap listens by itself, can be skipped, and finishes it.
     let assistant=SetupAssistant();defer{assistant.window.orderOut(nil)}
@@ -188,7 +188,7 @@ func runHomeChecks()throws {
         try retired(descendants(assistant.window.contentView!),"Setup (\(link), step \(step+1))")
     }
     assistant.update(SetupState());assistant.go(to:0)
-    try require(setupViews().contains{$0.accessibilityLabel()?.hasPrefix("Step 1 of 4, Allow") == true},"Setup should start by allowing control")
+    try require(setupViews().contains{$0.accessibilityLabel()?.hasPrefix("第 1 步，共 4 步：允许") == true},"Setup should start by allowing control")
     // The guide sits on System Settings' largest ordinary window, above its + and − buttons and clear of its sidebar.
     func window(_ owner:Int,_ layer:Int,_ x:Int,_ y:Int,_ width:Int,_ height:Int)->[String:Any]{
         [kCGWindowOwnerPID as String:owner,kCGWindowLayer as String:layer,kCGWindowBounds as String:["X":x,"Y":y,"Width":width,"Height":height]]
@@ -210,17 +210,17 @@ func runHomeChecks()throws {
     assistant.onFinish={finished+=1};assistant.onLearnTap={listening+=1};assistant.onStopLearningTap={stoppedListening+=1};assistant.onChooseAirPods={choosing+=1}
     func setupSays(_ words:String)->Bool{setupViews().contains{($0 as? NSTextField)?.stringValue.contains(words)==true}}
     assistant.go(to:1);assistant.update(SetupState(link:.idle,accessibilityTrusted:true))
-    try require(setupSays("diagnostic data") && setupSays("during a call"),"Setup should say what connecting does before anyone connects")
+    try require(setupSays("诊断数据") && setupSays("通话时"),"Setup should say what connecting does before anyone connects")
     assistant.update(SetupState(link:.idle,problem:ClosedCaseAirPods.Choice.several.failure,accessibilityTrusted:true))
-    try require(setupSays("diagnostic data") && setupSays("Choose which to use"),"A problem shouldn’t hide what connecting does")
+    try require(setupSays("诊断数据") && setupSays("请选择要使用哪一副"),"A problem shouldn’t hide what connecting does")
     let choose=setupViews().compactMap{$0 as? RemoteButton}.first{$0.style == .primary}
-    try require(choose?.title=="Choose AirPods…","Several pairs should offer a choice right in setup")
+    try require(choose?.title=="选择 AirPods…","Several pairs should offer a choice right in setup")
     choose?.performClick(nil)
     try require(choosing==1,"The choice should open from setup’s button")
     assistant.update(SetupState(link:.connected,accessibilityTrusted:true,calibrated:true));assistant.go(to:2)
-    try require(setupViews().compactMap{$0 as? RemoteButton}.first{$0.style == .primary}?.title=="Continue","Calibrate should lead on to the tap")
+    try require(setupViews().compactMap{$0 as? RemoteButton}.first{$0.style == .primary}?.title=="继续","Calibrate should lead on to the tap")
     assistant.go(to:3)
-    try require(listening==1 && !setupViews().compactMap{$0 as? RemoteButton}.filter{!$0.isHidden && $0.title=="Skip for Now"}.isEmpty,"The tap step should listen by itself and offer a skip")
+    try require(listening==1 && !setupViews().compactMap{$0 as? RemoteButton}.filter{!$0.isHidden && $0.title=="暂时跳过"}.isEmpty,"The tap step should listen by itself and offer a skip")
     assistant.update(SetupState(link:.idle,accessibilityTrusted:true,calibrated:true))
     try require(stoppedListening==1,"Losing the case on the tap step should stop listening")
     assistant.update(SetupState(link:.connected,accessibilityTrusted:true,calibrated:true))
@@ -229,7 +229,7 @@ func runHomeChecks()throws {
     try require(stoppedListening==2,"Leaving the tap step should stop listening")
     assistant.update(SetupState(link:.connected,accessibilityTrusted:true,calibrated:true,taps:SetupTaps(heard:3,learned:true)));assistant.go(to:9)
     let finish=setupViews().compactMap{$0 as? RemoteButton}.first{$0.style == .primary}
-    try require(assistant.step==3 && listening==2 && finish?.title=="Finish" && setupViews().contains{$0.accessibilityLabel()?.hasPrefix("Step 4 of 4") == true},"Setup went past the tap step, or the tap step didn’t finish it")
+    try require(assistant.step==3 && listening==2 && finish?.title=="完成" && setupViews().contains{$0.accessibilityLabel()?.hasPrefix("第 4 步，共 4 步") == true},"Setup went past the tap step, or the tap step didn’t finish it")
     try retired(setupViews(),"Setup’s last step")
     finish?.performClick(nil)
     try require(finished==1,"Finish did not end setup")
@@ -246,7 +246,7 @@ func runHomeChecks()throws {
     let app=App();defer{app.setup?.window.orderOut(nil);app.home?.window.orderOut(nil)}
     try require(app.showConnectEffectsFirst() && app.setup?.window.isVisible == true && app.setup?.step == (AXIsProcessTrusted() ? 1:0),"A first connection should open setup’s Connect step")
     func appWindow(_ text:String,on window:NSWindow?)->Bool{descendants(window!.contentView!).contains{($0 as? NSTextField)?.stringValue.contains(text)==true}}
-    try require(appWindow("diagnostic data",on:app.setup?.window) || !AXIsProcessTrusted(),"The first connection should show what a session does")
+    try require(appWindow("诊断数据",on:app.setup?.window) || !AXIsProcessTrusted(),"The first connection should show what a session does")
     app.reportEnded("Reason during setup.",fromNotch:false)
     try require(app.home == nil,"Setup says why on its own step, so the window should stay closed")
     app.setup?.window.close()
@@ -271,9 +271,9 @@ func runHomeChecks()throws {
 
     // The menu-bar popover: aim pad, Recenter, Pause and speed, then its rows. No mode and nothing to teach.
     let popover=MenuBarContentController()
-    popover.apply(MenuBarState(status:.live,detail:"Press fn ⌃ to pause from any app",speed:1.2,canDisconnect:true))
+    popover.apply(MenuBarState(status:.live,detail:"按 fn ⌃ 可在任何 App 中暂停",speed:1.2,canDisconnect:true))
     try retired(descendants(popover.view),"The menu-bar popover")
-    try require(descendants(popover.view).compactMap{$0 as? NSButton}.contains{$0.title=="Open AirPointer"},"The menu-bar popover lost its rows")
+    try require(descendants(popover.view).compactMap{$0 as? NSButton}.contains{$0.title=="打开 AirPointer"},"The menu-bar popover lost its rows")
 
     if let index=CommandLine.arguments.firstIndex(of:"--preview-directory"),CommandLine.arguments.indices.contains(index+1){
         let folder=URL(fileURLWithPath:CommandLine.arguments[index+1]);try FileManager.default.createDirectory(at:folder,withIntermediateDirectories:true)
@@ -311,7 +311,7 @@ func runHomeChecks()throws {
         for art in descendants(sample.window.contentView!).compactMap({$0 as? CaseStepView}){art.pinnedTime=1.2}
         sample.window.appearance=NSAppearance(named:.darkAqua);try render("pointer-close-lid-dark",from:sample)
         sample.window.appearance=NSAppearance(named:.aqua)
-        sample.setNotice("Open the lid, briefly lift and reseat one earbud, then reconnect.");try render("notice",from:sample);sample.setNotice(nil)
+        sample.setNotice("请打开盖子，取出并重新放回一只耳机，然后重新连接。");try render("notice",from:sample);sample.setNotice(nil)
         // Recenter, Recalibrate… and Disconnect share one row, even at the minimum width.
         let size=sample.window.frame.size
         sample.window.setContentSize(sample.window.contentMinSize)
@@ -319,7 +319,7 @@ func runHomeChecks()throws {
         try render("pointer-closed-paused-min",from:sample)
         sample.window.setFrame(NSRect(origin:sample.window.frame.origin,size:size),display:false)
         sample.updateControl(phase:.ready,inputsReady:true)
-        sample.setNotice("The case lost its connection. Connect again, then open the lid.")
+        sample.setNotice("充电盒断开了连接。请重新连接，然后打开盖子。")
         try render("pointer-notice",from:sample);sample.setNotice(nil)
         // Pointer and Settings are the only pages.
         sample.updatePointerSettings(PointerSettingsState(screens:["Built-in Retina Display","Projector"],screen:1,speed:1.4))
@@ -370,7 +370,7 @@ func runHomeChecks()throws {
         final class Wallpaper:NSView{override func draw(_ dirtyRect:NSRect){NSColor(srgbRed:0.36,green:0.42,blue:0.52,alpha:1).setFill();bounds.fill();NSColor(white:1,alpha:0.18).setFill();NSRect(x:0,y:bounds.height-32,width:bounds.width,height:32).fill()}}
         let notchSteps:[(String,NotchContent,Double)]=[("open-lid",NotchContent.connecting(.openLid,preparing:false)!,1.2),("looking",NotchContent.connecting(.connecting,preparing:false)!,0.8),
             ("close-lid",NotchContent.connecting(.closeLid,preparing:false)!,1.2),("turn",NotchContent.connecting(.settling,preparing:false)!,1.25),
-            ("aim",NotchContent.connecting(.calibrating,preparing:false)!,0),("pointing",.pointing,0),("ended",.ended("AirPointer stopped waiting for the lid. Connect again when you’re ready."),0),("ended-long",.ended(ClosedCaseAirPods.helperFailure(30,stopping:false)!),0)]
+            ("aim",NotchContent.connecting(.calibrating,preparing:false)!,0),("pointing",.pointing,0),("ended",.ended("AirPointer 已停止等待开盖。准备好后请重新连接。"),0),("ended-long",.ended(ClosedCaseAirPods.helperFailure(30,stopping:false)!),0)]
         let notchRow=NotchFlow.body+32+20
         let notchSheet=Wallpaper(frame:NSRect(x:0,y:0,width:440,height:CGFloat(notchSteps.count)*notchRow))
         for (index,(_,content,time)) in notchSteps.enumerated() {
@@ -393,12 +393,12 @@ func runHomeChecks()throws {
         overlay.step=1;overlay.progress=0.6;try snapshot("calibrate-right",overlay,nil)
         overlay.step=0;overlay.steps=1;overlay.progress=0.4;try snapshot("calibrate-center-only",overlay,nil)
         let bar=MenuBarContentController()
-        bar.apply(MenuBarState(status:.live,detail:"Press fn ⌃ to pause from any app",speed:1.2))
+        bar.apply(MenuBarState(status:.live,detail:"按 fn ⌃ 可在任何 App 中暂停",speed:1.2))
         bar.setPointer(CGPoint(x:0.62,y:0.38))
         let barWindow=NSWindow(contentRect:NSRect(origin:.zero,size:bar.preferredContentSize),styleMask:[.borderless],backing:.buffered,defer:false)
         barWindow.contentViewController=bar;barWindow.backgroundColor=HomePalette.raised
         try windowSnapshot("menu-bar",barWindow,.aqua)
-        bar.apply(MenuBarState(status:.paused("Paused"),detail:"Resume when you’re ready.",speed:1,canDisconnect:true))
+        bar.apply(MenuBarState(status:.paused("Paused"),detail:"准备好了就继续。",speed:1,canDisconnect:true))
         barWindow.setContentSize(bar.preferredContentSize)
         try windowSnapshot("menu-bar-dark",barWindow,.darkAqua)
         // The status item in each state, at menu-bar size and enlarged, on light and dark bars.

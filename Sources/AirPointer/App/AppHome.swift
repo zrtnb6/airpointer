@@ -58,11 +58,11 @@ extension App {
     func presentClosedCalibration(_ session:ClosedCaseSession){
         guard !calibrator.isActive,!closedCalibrationDeclined else{return}
         calibrator.closedCase={ [weak session] center,right,up in
-            guard let session else{throw LessonError.message("The case lost its connection. Connect again, then open the lid.")}
+            guard let session else{throw LessonError.message("充电盒断开了连接。请重新连接，然后打开盖子。")}
             try session.applyCalibration(center:center,right:right,up:up)
         }
         calibrator.closedCenter=session.centerOnly ? { [weak session] center in
-            guard let session else{throw LessonError.message("The case lost its connection. Connect again, then open the lid.")}
+            guard let session else{throw LessonError.message("充电盒断开了连接。请重新连接，然后打开盖子。")}
             return try session.applyCenter(center)
         }:nil
         calibrator.show(on:controlledScreen)
@@ -114,16 +114,16 @@ extension App {
         else if !trusted{homePhase = .needsAccessibility}
         else{homePhase = .needsInputs}
         let title:String
-        if !trusted{title="Allow AirPointer…"}
+        if !trusted{title="允许 AirPointer…"}
         else if let session=closedCaseSession,session.isActive {
             switch session.stage {
-            case .pointing:title="Pause"
-            case .ready:title="Start Pointing"
-            case .closeLid:title="Lid Closed"
-            case .calibrating:title="Start Calibration"
-            default:title="Cancel Connecting"
+            case .pointing:title="暂停"
+            case .ready:title="开始指向"
+            case .closeLid:title="已合盖"
+            case .calibrating:title="开始校准"
+            default:title="取消连接"
             }
-        }else{title="Start Pointing"}
+        }else{title="开始指向"}
         for item in homeMenuItems{item.title=title}
         disconnectMenuItem?.isHidden=closedCaseSession?.isActive != true
         guard let home else{return}
@@ -157,7 +157,7 @@ extension App {
         // Another pair is a different connection, so a session on the old one ends.
         if closedCasePairs.indices.contains(value.pair),closedCasePairs[value.pair].address != ClosedCaseAirPods.saved {
             disconnectClosedCase()
-            do{try ClosedCaseAirPods.save(closedCasePairs[value.pair])}catch{home?.setNotice("AirPointer couldn’t save which AirPods to use. Try again.")}
+            do{try ClosedCaseAirPods.save(closedCasePairs[value.pair])}catch{home?.setNotice("AirPointer 无法保存要使用哪副 AirPods。请再试一次。")}
         }
         var next=value;next.clampSpeed()
         let screenChanged=pointerSettings.screen != next.screen
@@ -295,18 +295,18 @@ extension App {
     func refreshStatusBar(){
         var status:MenuBarState.Status,detail:String
         switch homePhase {
-        case .needsInputs:status = .notConnected;detail="Connect, then open the lid."
-        case .connecting:status = .connecting;detail="Keep the lid open for a moment."
-        case .needsAccessibility:status = .needsAccess;detail="Allow AirPointer in Accessibility to move the pointer."
-        case .closedCase(.openLid):status = .connecting;detail="Open the lid to connect."
-        case .closedCase(.closeLid):status = .connecting;detail="Close the lid."
-        case .closedCase(.turnUpright):status = .connecting;detail="Turn the closed case upright."
-        case .closedCase(.holdStill):status = .connecting;detail="Put the closed case on a flat surface."
-        case .closedCase(.calibrate):status = .connecting;detail="Point at the dots on your screen."
-        case .closedCase(.recenter):status = .connecting;detail="Point at the dot in the center of your screen."
-        case .ready:status = .ready;detail="Hold the closed case upright."
-        case .running:status = .live;detail="Press \(PointerShortcut.current.label) to pause from any app"
-        case .paused(let reason):status = .paused(reason=="Paused" ? "":reason);detail="Resume when you’re ready."
+        case .needsInputs:status = .notConnected;detail="先连接，再打开盖子。"
+        case .connecting:status = .connecting;detail="盖子保持打开一会儿。"
+        case .needsAccessibility:status = .needsAccess;detail="请在「辅助功能」中允许 AirPointer 移动指针。"
+        case .closedCase(.openLid):status = .connecting;detail="打开盖子即可连接。"
+        case .closedCase(.closeLid):status = .connecting;detail="合上盖子。"
+        case .closedCase(.turnUpright):status = .connecting;detail="把合上的充电盒竖起来。"
+        case .closedCase(.holdStill):status = .connecting;detail="把合上的充电盒放到平整桌面上。"
+        case .closedCase(.calibrate):status = .connecting;detail="指向屏幕上的圆点。"
+        case .closedCase(.recenter):status = .connecting;detail="指向屏幕中心的圆点。"
+        case .ready:status = .ready;detail="竖着拿住合上的充电盒。"
+        case .running:status = .live;detail="按 \(PointerShortcut.current.label) 可在任何 App 中暂停"
+        case .paused(let reason):status = .paused(reason=="Paused" ? "":reason);detail="准备好了就继续。"
         }
         statusBar?.update(MenuBarState(status:status,detail:detail,speed:pointerSettings.speed,canDisconnect:closedCaseSession?.isActive == true))
         announcePhaseChange()
@@ -318,17 +318,17 @@ extension App {
         // The notch has no step for this, so the HUD says it for every session.
         switch (previous,homePhase) {
         case (.running,.needsAccessibility),(.paused,.needsAccessibility):
-            hud.show("Pointer stopped — allow AirPointer in Accessibility",symbol:"hand.raised",on:controlledScreen);return
+            hud.show("指针已停止 — 请在「辅助功能」中允许 AirPointer",symbol:"hand.raised",on:controlledScreen);return
         default:break
         }
         // A session from the notch says it there; the HUD stays for a pointer on another screen.
         if closedCaseSession?.usesNotch == true,let notch,notch.screen == controlledScreen{return}
         switch (previous,homePhase) {
-        case (_,.running):hud.show("Pointing",live:true,on:controlledScreen)
+        case (_,.running):hud.show("正在指向",live:true,on:controlledScreen)
         case (.running,.paused(let reason)):
             let short=reason=="Paused" || reason.isEmpty ? "":" — "+(reason.split(separator:".").first.map(String.init) ?? reason)
-            hud.show("Paused"+short,symbol:"pause.fill",on:controlledScreen)
-        case (.running,.needsInputs),(.paused,.needsInputs):hud.show("Disconnected — connect again, then open the lid",symbol:"xmark.circle",on:controlledScreen)
+            hud.show("已暂停"+short,symbol:"pause.fill",on:controlledScreen)
+        case (.running,.needsInputs),(.paused,.needsInputs):hud.show("已断开 — 请重新连接，然后打开盖子",symbol:"xmark.circle",on:controlledScreen)
         default:break
         }
     }

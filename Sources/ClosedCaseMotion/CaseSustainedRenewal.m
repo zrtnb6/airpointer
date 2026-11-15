@@ -1210,7 +1210,7 @@ static int offlineSelfTest(void) {
     hardeningChecks();
     ConsoleReader *sensorReader=ConsoleReader.new;sensorReader.motionStream=tmpfile();check(sensorReader.motionStream!=NULL,@"offline sensor stream opened");testSensorWire(sensorReader,100);
     NSDictionary *firstSensor=sensorReader.lastSamples[@"11"];
-    check(firstSensor,@"actual RTBuddy wire parser recognizes a fresh sensor timestamp");
+    check(firstSensor!=nil,@"actual RTBuddy wire parser recognizes a fresh sensor timestamp");
     testSensorWire(sensorReader,100);testSensorWire(sensorReader,90);
     check(sensorReader.lastSamples[@"11"]==firstSensor,@"duplicate and backwards sensor packets cannot refresh the live arrival clock");
     testSensorWire(sensorReader,200);

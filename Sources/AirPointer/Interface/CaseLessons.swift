@@ -48,7 +48,7 @@ final class CaseCalibrator:NSObject {
         NSAnimationContext.runAnimationGroup{$0.duration=0.2;window.animator().alphaValue=1}
         if link == nil{let link=overlay.displayLink(target:self,selector:#selector(refresh(_:)));link.add(to:.main,forMode:.common);self.link=link}
         NSCursor.setHiddenUntilMouseMoves(true)
-        announce(steps==1 ? "Recenter. Point at the dot and keep still.":"Calibration, step 1 of 3. Point at the dot and keep still.")
+        announce(steps==1 ? "重新居中。对准圆点并保持不动。":"校准，第 1 步，共 3 步。对准圆点并保持不动。")
     }
     func feed(_ frame:MotionFrame) {
         guard phase == .aiming else{return}
@@ -71,7 +71,7 @@ final class CaseCalibrator:NSObject {
     }
     func disconnected() {
         guard phase == .aiming else{return}
-        if step>0 || collectStart != nil{restart("Motion was interrupted. Start again from the center.")}else{recent=[]}
+        if step>0 || collectStart != nil{restart("动作数据被打断。请从中心重新开始。")}else{recent=[]}
     }
     func cancel() {
         guard phase != .idle else{return}
@@ -88,7 +88,7 @@ final class CaseCalibrator:NSObject {
     }
     private func drop(steadier:Bool=false,message:String?=nil) {
         collectStart=nil;collected=[]
-        if steadier && overlay.hint != .steadier{overlay.hint = .steadier;announce("Hold a little steadier.")}
+        if steadier && overlay.hint != .steadier{overlay.hint = .steadier;announce("请再稳一点。")}
         if let message{overlay.message=message}
     }
     private func spread(_ frames:[MotionFrame])->Double {
@@ -101,7 +101,7 @@ final class CaseCalibrator:NSObject {
               let mean=Pose.mean(captured.map(\.pose)),let first=captured.first,let last=captured.last,
               last.t-first.t>0.4,
               zip(captured,captured.dropFirst()).allSatisfy({$1.t-$0.t<0.16}) else {
-            drop(message:"Motion dropped during the capture. Keep still to try again.");return
+            drop(message:"记录过程中动作数据中断了。保持不动再试一次。");return
         }
         let spread=captured.map{$0.pose.rotation(from:mean).length}.max() ?? 99
         guard spread<3*Double.pi/180 else{drop(steadier:true);return}
@@ -110,20 +110,20 @@ final class CaseCalibrator:NSObject {
         if steps==1,let closedCenter {
             do{if try closedCenter(poses[0]){complete();return}}catch{restart(error.localizedDescription);return}
             steps=3;overlay.steps=3;step=1;overlay.step=1;overlay.progress=0
-            overlay.message="You’re holding the case differently from last time, so aim at the edges too."
-            announce("Center captured. The grip changed, so step 2 of 3: now the right edge.")
+            overlay.message="这次握法和上次不同，所以也要对准边缘。"
+            announce("中心已记录。握法变了，所以第 2 步，共 3 步：现在指向右边缘。")
             return
         }
         guard step==2 else {
             step+=1;overlay.step=step;overlay.progress=0
-            announce(step==1 ? "Center captured. Step 2 of 3: now the right edge.":"Right edge captured. Step 3 of 3: now the top edge.")
+            announce(step==1 ? "中心已记录。第 2 步，共 3 步：现在指向右边缘。":"右边缘已记录。第 3 步，共 3 步：现在指向上边缘。")
             return
         }
         do {try closedCase?(poses[0],poses[1],poses[2]);complete()}catch{restart(error.localizedDescription)}
     }
     private func complete() {
         phase = .done;overlay.success=true;overlay.progress=1;overlay.pulse=0
-        announce("Calibrated. Point back at the center — you’re ready.")
+        announce("校准完成。再指向中心——可以开始了。")
         let token=generation
         DispatchQueue.main.asyncAfter(deadline:.now()+1.2){[weak self] in
             guard let self,self.generation==token,self.phase == .done else{return}
@@ -133,7 +133,7 @@ final class CaseCalibrator:NSObject {
     private func restart(_ reason:String) {
         step=0;poses=[];recent=[];collected=[];collectStart=nil
         overlay.step=0;overlay.progress=0;overlay.hint = .none;overlay.message=reason
-        announce("\(reason) Point at the dot.")
+        announce("\(reason) 请对准圆点。")
     }
     @objc private func refresh(_ link:CADisplayLink){update()}
     private func update() {
@@ -142,7 +142,7 @@ final class CaseCalibrator:NSObject {
         let waiting=now-lastReceived>0.4
         if waiting != overlay.waiting {
             overlay.waiting=waiting
-            if waiting{recent=[];collected=[];collectStart=nil;announce("Waiting for your AirPods.")}
+            if waiting{recent=[];collected=[];collectStart=nil;announce("正在等待你的 AirPods。")}
         }
         if !waiting {
             if let start=collectStart{overlay.progress=CGFloat(min(1,(now-start)/0.8))}
@@ -165,7 +165,7 @@ final class CaseCalibrator:NSObject {
         window.isReleasedWhenClosed=false;window.isOpaque=true;window.hasShadow=false;window.backgroundColor = .black
         window.level=NSWindow.Level(rawValue:NSWindow.Level.statusBar.rawValue+1)
         window.collectionBehavior=[.canJoinAllSpaces,.fullScreenAuxiliary]
-        window.animationBehavior = .none;window.title="Calibrate AirPointer"
+        window.animationBehavior = .none;window.title="校准 AirPointer"
         window.contentView=overlay
         self.window=window
         return window
@@ -193,7 +193,7 @@ private final class CalibrationWindow:NSWindow {
 // property, so previews can render any moment without motion.
 final class CalibrationOverlayView:NSView {
     enum Hint{case none,move,steadier}
-    static let stepNames=["Center","Right edge","Top edge"]
+    static let stepNames=["中心","右边缘","上边缘"]
     static let ringRadius:CGFloat=44
     var step=0{didSet{if step != oldValue{refreshState()}}}
     // 1 when saved edges leave only the center.
@@ -214,12 +214,12 @@ final class CalibrationOverlayView:NSView {
     private let stepRow=CalibrationSteps()
     private let brand=rkLabel("",13,.medium,.tertiaryLabelColor)
     private let footer:NSStackView = {
-        let capture=rkLabel("Capture now",13,.regular,.tertiaryLabelColor),cancel=rkLabel("Cancel",13,.regular,.tertiaryLabelColor)
-        capture.setAccessibilityLabel("Press Space to capture now");cancel.setAccessibilityLabel("Press Escape to cancel")
+        let capture=rkLabel("立即记录",13,.regular,.tertiaryLabelColor),cancel=rkLabel("取消",13,.regular,.tertiaryLabelColor)
+        capture.setAccessibilityLabel("按空格立即记录");cancel.setAccessibilityLabel("按 Esc 取消")
         let stack=rkHStack([KeyCap("Space"),capture,KeyCap("Esc"),cancel],spacing:8);stack.setCustomSpacing(24,after:capture)
         return stack
     }()
-    private lazy var cancelButton=RemoteButton("Cancel",style:.tertiary,height:28,target:self,action:#selector(cancelClicked))
+    private lazy var cancelButton=RemoteButton("取消",style:.tertiary,height:28,target:self,action:#selector(cancelClicked))
 
     // The center, about 80 pt in from the right edge, or 80 pt down from the top.
     static func targetPoint(for step:Int,in bounds:NSRect)->NSPoint {
@@ -232,7 +232,7 @@ final class CalibrationOverlayView:NSView {
     override init(frame:NSRect) {
         super.init(frame:frame)
         appearance=NSAppearance(named:.darkAqua)
-        setAccessibilityRole(.group);setAccessibilityLabel("Calibration")
+        setAccessibilityRole(.group);setAccessibilityLabel("校准")
         let title=rkHStack([rkSymbolView("airpodspro.chargingcase.wireless",13),brand],spacing:8)
         let text=rkVStack([heading,detail,stepRow],spacing:8,align:.centerX);text.setCustomSpacing(24,after:detail)
         cancelButton.refusesFirstResponder=true
@@ -262,13 +262,13 @@ final class CalibrationOverlayView:NSView {
         // A restart reason reads a step louder than the quiet line it replaces.
         let notice=message != nil && !success && !waiting
         if success {
-            rkSetText(heading,"Calibrated");rkSetText(detail,steps==1 ? "You’re ready.":"Point back at the center — you’re ready.")
+            rkSetText(heading,"已校准");rkSetText(detail,steps==1 ? "可以开始了。":"再指向中心——可以开始了。")
         } else if waiting {
-            rkSetText(heading,"Waiting for your AirPods")
-            rkSetText(detail,"Keep the closed case upright and still. If nothing moves, connect again, then open the lid.")
+            rkSetText(heading,"正在等待你的 AirPods")
+            rkSetText(detail,"竖着拿住合盖的充电盒并保持不动。如果一直没有反应，请重新连接，然后打开盖子。")
         } else {
-            rkSetText(heading,["Point at the dot","Now the right edge","Now the top edge"][current])
-            rkSetText(detail,message ?? (steps==1 ? "Your edges are saved, so this is the only dot. Keep still for a moment.":"Hold the case the way you’ll point with it. Keep still for a moment."))
+            rkSetText(heading,["指向圆点","现在指向右边缘","现在指向上边缘"][current])
+            rkSetText(detail,message ?? (steps==1 ? "边缘位置已保存，所以只有这一个点。保持不动一会儿。":"用之后指向时的握法拿住充电盒，保持不动一会儿。"))
         }
         detail.textColor=notice ? .labelColor:.secondaryLabelColor
         detail.font = .systemFont(ofSize:15,weight:notice ? .medium:.regular)
@@ -276,14 +276,14 @@ final class CalibrationOverlayView:NSView {
         let single=ceil((detail.stringValue as NSString).size(withAttributes:[.font:detail.font!]).width)
         let lines=max(1,ceil(single/600))
         detailWidth.constant=lines<2 ? 600:min(600,ceil(single/lines)+48)
-        rkSetText(brand,success ? "AirPointer · Calibrated":steps==1 ? "AirPointer · Recentering":"AirPointer · Calibrating")
+        rkSetText(brand,success ? "AirPointer · 已校准":steps==1 ? "AirPointer · 正在居中":"AirPointer · 正在校准")
         stepRow.current=success ? 3:current;stepRow.isHidden=steps==1
         target.isHidden=success;target.live = !waiting
-        target.setAccessibilityLabel("\(Self.stepNames[current]) target")
+        target.setAccessibilityLabel("\(Self.stepNames[current]) 目标")
         switch hint {
         case .none:hintChip.set("",symbol:nil)
-        case .steadier:hintChip.set("Hold a little steadier",symbol:"hand.raised")
-        case .move:hintChip.set(current==2 ? "Move toward the top edge":"Move toward the right edge",symbol:current==2 ? "arrow.up":"arrow.right")
+        case .steadier:hintChip.set("请再稳一点",symbol:"hand.raised")
+        case .move:hintChip.set(current==2 ? "向上边缘移动":"向右边缘移动",symbol:current==2 ? "arrow.up":"arrow.right")
         }
         hintChip.isHidden=hint == .none || waiting || success
         footer.isHidden=success;cancelButton.isHidden=success
@@ -407,7 +407,7 @@ private final class CalibrationSteps:NSView {
     required init?(coder:NSCoder){fatalError("init(coder:) is not used")}
     override func isAccessibilityElement()->Bool{true}
     override func accessibilityRole()->NSAccessibility.Role?{.staticText}
-    private func describe(){setAccessibilityLabel(current<names.count ? "Step \(current+1) of \(names.count): \(names[current])":"All \(names.count) steps done")}
+    private func describe(){setAccessibilityLabel(current<names.count ? "第 \(current+1) 步，共 \(names.count) 步：\(names[current])":"\(names.count) 步全部完成")}
     // Widths use the semibold face, so the row doesn't shift as the current step moves.
     private func width(_ name:String)->CGFloat{ceil((name as NSString).size(withAttributes:[.font:strong]).width)}
     override var intrinsicContentSize:NSSize {

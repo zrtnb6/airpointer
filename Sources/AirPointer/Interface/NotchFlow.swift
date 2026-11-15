@@ -48,23 +48,23 @@ struct NotchContent:Equatable {
     var step:CaseStep,title:String,detail:String,progress:Int?,live=false
     static func connecting(_ stage:ClosedCaseStage,preparing:Bool)->NotchContent? {
         switch stage {
-        case .openLid:return NotchContent(step:.opening,title:"Open the lid",detail:"Keep both AirPods inside.",progress:0)
+        case .openLid:return NotchContent(step:.opening,title:"打开盖子",detail:"两只 AirPods 都留在里面。",progress:0)
         // Finding the paired AirPods comes before the lid, and takes a moment at most.
-        case .connecting where preparing:return NotchContent(step:.opening,title:"Open the lid",detail:"Keep both AirPods inside.",progress:0)
-        case .connecting:return NotchContent(step:.open,title:"Looking for your AirPods…",detail:"Keep the lid open for a moment.",progress:0)
-        case .closeLid:return NotchContent(step:.close,title:"Close the lid",detail:"AirPointer goes on by itself.",progress:1)
-        case .holding:return NotchContent(step:.closed,title:"Set it down",detail:"On a flat surface, for a moment.",progress:2)
-        case .settling:return NotchContent(step:.turn,title:"Turn it upright",detail:"A quarter turn clockwise.",progress:2)
-        case .calibrating:return NotchContent(step:.point,title:"Aim at the screen",detail:"Pointing starts from where you hold it.",progress:2)
+        case .connecting where preparing:return NotchContent(step:.opening,title:"打开盖子",detail:"两只 AirPods 都留在里面。",progress:0)
+        case .connecting:return NotchContent(step:.open,title:"正在寻找你的 AirPods…",detail:"盖子保持打开一会儿。",progress:0)
+        case .closeLid:return NotchContent(step:.close,title:"合上盖子",detail:"AirPointer 会自动继续。",progress:1)
+        case .holding:return NotchContent(step:.closed,title:"放下它",detail:"放在平整桌面上，稍等一会儿。",progress:2)
+        case .settling:return NotchContent(step:.turn,title:"把它竖起来",detail:"顺时针转四分之一圈。",progress:2)
+        case .calibrating:return NotchContent(step:.point,title:"对准屏幕",detail:"从你握持的位置开始指向。",progress:2)
         default:return nil
         }
     }
-    static let lost=NotchContent(step:.opening,title:"Lost your AirPods",detail:"Open the lid to reconnect, then close it to keep pointing.",progress:0)
-    static let pointing=NotchContent(step:.point,title:"Pointing",detail:"Tap the front of the case to click.",progress:3,live:true)
-    static var paused:NotchContent{NotchContent(step:.point,title:"Paused",detail:"Press \(PointerShortcut.current.label) to point again.",progress:nil)}
+    static let lost=NotchContent(step:.opening,title:"AirPods 失联",detail:"打开盖子重新连接，再合上盖子继续指向。",progress:0)
+    static let pointing=NotchContent(step:.point,title:"正在指向",detail:"轻敲充电盒正面即可点击。",progress:3,live:true)
+    static var paused:NotchContent{NotchContent(step:.point,title:"已暂停",detail:"按 \(PointerShortcut.current.label) 继续指向。",progress:nil)}
     // Restoring the AirPods link after a cancel can take up to 30 s, and nothing can start until it's done.
-    static let finishing=NotchContent(step:.closed,title:"Disconnecting…",detail:"Just a moment. You can connect again after this.",progress:nil)
-    static func ended(_ reason:String)->NotchContent{NotchContent(step:.closed,title:"Not connected",detail:reason,progress:nil)}
+    static let finishing=NotchContent(step:.closed,title:"正在断开…",detail:"稍等一下，完成后可以重新连接。",progress:nil)
+    static func ended(_ reason:String)->NotchContent{NotchContent(step:.closed,title:"未连接",detail:reason,progress:nil)}
 }
 
 // The sound of the notch dropping down. It plays on the Mac's own output, never the AirPods.
@@ -95,7 +95,7 @@ final class NotchFlow {
     private var motion:Timer?,dismiss:Timer?,screens:NSObjectProtocol?
     static let body:CGFloat=200
     init() {
-        panel.title="AirPointer · Notch";panel.isOpaque=false;panel.backgroundColor = .clear;panel.hasShadow=false
+        panel.title="AirPointer · 刘海";panel.isOpaque=false;panel.backgroundColor = .clear;panel.hasShadow=false
         panel.level=NSWindow.Level(rawValue:NSWindow.Level.statusBar.rawValue+1)
         panel.collectionBehavior=[.canJoinAllSpaces,.fullScreenAuxiliary,.stationary]
         panel.hidesOnDeactivate=false;panel.isMovable=false;panel.ignoresMouseEvents=true;panel.isReleasedWhenClosed=false

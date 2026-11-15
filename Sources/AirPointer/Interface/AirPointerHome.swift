@@ -98,33 +98,33 @@ private struct HomeControlKey:Equatable {let phase:HomeControlPhase;let inputs:B
 
 private func hmCommand(_ phase:HomeControlPhase)->(title:String,hint:String?) {
     switch phase {
-    case .needsInputs:return ("Connect AirPods",nil)
-    case .connecting:return ("Cancel","esc")
-    case .needsAccessibility:return ("Allow",nil)
-    case .ready:return ("Start Pointing",PointerShortcut.current.label)
-    case .running:return ("Pause",PointerShortcut.current.label)
-    case .paused:return ("Resume",PointerShortcut.current.label)
-    case .closedCase(.openLid):return ("Cancel","esc")
-    case .closedCase(.closeLid):return ("Lid Closed","Return")
-    case .closedCase(.turnUpright),.closedCase(.holdStill):return ("Cancel","esc")
-    case .closedCase(.calibrate):return ("Start Calibration",nil)
-    case .closedCase(.recenter):return ("Recenter",nil)
+    case .needsInputs:return ("连接 AirPods",nil)
+    case .connecting:return ("取消","esc")
+    case .needsAccessibility:return ("允许",nil)
+    case .ready:return ("开始指向",PointerShortcut.current.label)
+    case .running:return ("暂停",PointerShortcut.current.label)
+    case .paused:return ("继续",PointerShortcut.current.label)
+    case .closedCase(.openLid):return ("取消","esc")
+    case .closedCase(.closeLid):return ("已合盖","Return")
+    case .closedCase(.turnUpright),.closedCase(.holdStill):return ("取消","esc")
+    case .closedCase(.calibrate):return ("开始校准",nil)
+    case .closedCase(.recenter):return ("重新居中",nil)
     }
 }
 private func hmHero(_ phase:HomeControlPhase)->(String,String) {
     switch phase {
-    case .needsInputs:return ("Connect your AirPods","Hold the closed case with both AirPods inside. Connect, then open the lid.")
-    case .connecting:return ("Looking for your AirPods…","Keep the lid open for a moment.")
-    case .needsAccessibility:return ("Allow control","Press Allow to open the Accessibility list, then drag AirPointer into it so it can move the pointer and click.")
-    case .ready:return ("Ready to point","Hold the closed case upright and aim at the screen.")
-    case .running:return ("Pointing","Aim with the case. Tap its front to click.")
-    case .paused(let reason):return ("Paused",reason=="Paused" || reason.isEmpty ? "Resume when you’re ready.":reason)
-    case .closedCase(.openLid):return ("Open the lid","AirPointer connects when you open it. Keep both AirPods inside.")
-    case .closedCase(.closeLid):return ("Close the lid","Keep both AirPods inside. AirPointer goes on by itself, or press Return.")
-    case .closedCase(.turnUpright):return ("Turn it upright","Give the closed case a quarter turn clockwise.")
-    case .closedCase(.holdStill):return ("Set it down","Put the closed case on a flat surface for a moment.")
-    case .closedCase(.calibrate):return ("Point at the dots","Aim at each dot on your screen and hold still. Esc cancels.")
-    case .closedCase(.recenter):return ("Point at the center","Your edges are saved, so one dot is enough. Esc cancels.")
+    case .needsInputs:return ("连接你的 AirPods","拿着合上盖的充电盒，两只 AirPods 都在里面。先连接，再打开盖子。")
+    case .connecting:return ("正在寻找你的 AirPods…","盖子保持打开一会儿。")
+    case .needsAccessibility:return ("允许控制","点按「允许」打开「辅助功能」列表，再把 AirPointer 拖进去，它就能移动指针并点击。")
+    case .ready:return ("准备就绪","竖着拿住合盖的充电盒，对准屏幕。")
+    case .running:return ("正在指向","用充电盒瞄准，轻敲正面即可点击。")
+    case .paused(let reason):return ("已暂停",reason=="Paused" || reason.isEmpty ? "准备好了就继续。":reason)
+    case .closedCase(.openLid):return ("打开盖子","打开盖子时 AirPointer 会连接。两只 AirPods 都留在里面。")
+    case .closedCase(.closeLid):return ("合上盖子","两只 AirPods 都留在里面。AirPointer 会自动继续，也可以按 Return。")
+    case .closedCase(.turnUpright):return ("把它竖起来","把合上的充电盒顺时针转四分之一圈。")
+    case .closedCase(.holdStill):return ("放下它","把合上的充电盒在平整桌面上放一会儿。")
+    case .closedCase(.calibrate):return ("指向圆点","对准屏幕上的每个圆点并保持不动，按 Esc 取消。")
+    case .closedCase(.recenter):return ("指向中心","边缘位置已保存，所以只用一个点。按 Esc 取消。")
     }
 }
 
@@ -210,7 +210,7 @@ private final class NoticeBar:NSView {
         super.init(frame:.zero);translatesAutoresizingMaskIntoConstraints=false
         close.image=rkSymbol("xmark",10,.semibold);close.isBordered=false;close.imagePosition = .imageOnly
         close.contentTintColor = .secondaryLabelColor;close.target=self;close.action=#selector(dismiss)
-        close.setAccessibilityLabel("Dismiss")
+        close.setAccessibilityLabel("关闭")
         // The message takes the width left over, so the dismiss button sits at the trailing edge.
         text.setContentHuggingPriority(.init(1),for:.horizontal);close.setContentHuggingPriority(.required,for:.horizontal)
         let row=rkHStack([icon,text,close],spacing:10);row.alignment = .firstBaseline;row.distribution = .fill
@@ -329,7 +329,7 @@ final class AirPointerHome:NSObject,NSWindowDelegate {
     func selectSettings() {
         guard page != .settings else{return}
         present(.settings)
-        NSAccessibility.post(element:window,notification:.announcementRequested,userInfo:[.announcement:"Settings",.priority:NSAccessibilityPriorityLevel.medium.rawValue])
+        NSAccessibility.post(element:window,notification:.announcementRequested,userInfo:[.announcement:"设置",.priority:NSAccessibilityPriorityLevel.medium.rawValue])
     }
     func updatePointerSettings(_ value:PointerSettingsState) {
         guard value != pointerSettings else{return}
@@ -384,7 +384,7 @@ extension AirPointerHome:NSToolbarDelegate {
     func toolbar(_ toolbar:NSToolbar,itemForItemIdentifier identifier:NSToolbarItem.Identifier,willBeInsertedIntoToolbar flag:Bool)->NSToolbarItem? {
         let item=NSToolbarItem(itemIdentifier:identifier)
         if identifier == .homeSettings {
-            item.image=rkSymbol("gearshape",15);item.label="Settings";item.toolTip="Settings (⌘,)"
+            item.image=rkSymbol("gearshape",15);item.label="设置";item.toolTip="设置 (⌘,)"
             item.isBordered=true;item.target=self;item.action=#selector(openSettings)
         } else{return nil}
         return item
@@ -401,10 +401,10 @@ private final class PointerPage:NSObject {
     private let chip=StatusChip()
     private let title=rkTitle("",26,align:.center)
     private let subtitle=rkWrap("",13,align:.center)
-    private let primary=RemoteButton("Start Pointing",height:48)
-    private let recenter=RemoteButton("Recenter",style:.tertiary,symbol:"scope",height:32)
-    private let recalibrate=RemoteButton("Recalibrate…",style:.tertiary,symbol:"dot.viewfinder",height:32)
-    private let disconnect=RemoteButton("Disconnect",style:.tertiary,symbol:"xmark.circle",height:32)
+    private let primary=RemoteButton("开始指向",height:48)
+    private let recenter=RemoteButton("重新居中",style:.tertiary,symbol:"scope",height:32)
+    private let recalibrate=RemoteButton("重新校准…",style:.tertiary,symbol:"dot.viewfinder",height:32)
+    private let disconnect=RemoteButton("断开连接",style:.tertiary,symbol:"xmark.circle",height:32)
     private let secondary=NSStackView()
     private var showingPad:Bool?
 
@@ -435,8 +435,8 @@ private final class PointerPage:NSObject {
         recenter.target=self;recenter.action=#selector(recenterPressed)
         recalibrate.target=self;recalibrate.action=#selector(recalibratePressed)
         disconnect.target=self;disconnect.action=#selector(disconnectPressed)
-        recenter.toolTip="Recenter on where you’re aiming";recalibrate.toolTip="Point at three dots so AirPointer knows where your screen is"
-        disconnect.toolTip="End the connection. To reconnect, connect again and open the lid."
+        recenter.toolTip="以当前瞄准的位置重新居中";recalibrate.toolTip="指向三个圆点，让 AirPointer 知道屏幕的位置"
+        disconnect.toolTip="结束连接。要重新连接，请再连接一次并打开盖子。"
         secondary.orientation = .horizontal;secondary.spacing=4
         secondary.addArrangedSubview(recenter);secondary.addArrangedSubview(recalibrate);secondary.addArrangedSubview(disconnect)
         column.addCentered(secondary)
@@ -467,24 +467,24 @@ private final class PointerPage:NSObject {
         }
         let live:Bool
         switch phase {
-        case .needsInputs:chip.set("Not connected",dot:false);live=false
-        case .connecting:chip.set("Connecting…",dot:false);live=false
-        case .closedCase(.openLid):chip.set("Waiting for the lid",dot:false);live=false
-        case .needsAccessibility:chip.set(connected ? "Connected":"Not connected",dot:connected);live=false
-        case .ready:chip.set("Connected");live=false
-        case .running:chip.set("Pointing",live:true);live=true
-        case .paused:chip.set("Paused");live=false
-        case .closedCase(.closeLid):chip.set("Connected");live=false
-        case .closedCase(.turnUpright):chip.set("Connected");live=false
-        case .closedCase(.holdStill):chip.set("Keep it still",dot:false);live=false
-        case .closedCase(.calibrate):chip.set("Calibrating",dot:false);live=false
-        case .closedCase(.recenter):chip.set("Recentering",dot:false);live=false
+        case .needsInputs:chip.set("未连接",dot:false);live=false
+        case .connecting:chip.set("正在连接…",dot:false);live=false
+        case .closedCase(.openLid):chip.set("等待开盖",dot:false);live=false
+        case .needsAccessibility:chip.set(connected ? "已连接":"未连接",dot:connected);live=false
+        case .ready:chip.set("已连接");live=false
+        case .running:chip.set("指向中",live:true);live=true
+        case .paused:chip.set("已暂停");live=false
+        case .closedCase(.closeLid):chip.set("已连接");live=false
+        case .closedCase(.turnUpright):chip.set("已连接");live=false
+        case .closedCase(.holdStill):chip.set("保持不动",dot:false);live=false
+        case .closedCase(.calibrate):chip.set("正在校准",dot:false);live=false
+        case .closedCase(.recenter):chip.set("正在居中",dot:false);live=false
         }
         if showingPad != connected {
             showingPad=connected
             home.pad.isHidden = !connected;art.isHidden=connected
         }
-        home.pad.live=live;home.pad.setAccessibilityLabel(live ? "Pointer preview, live":"Pointer preview")
+        home.pad.live=live;home.pad.setAccessibilityLabel(live ? "指针预览，实时":"指针预览")
         let screens=home.pointerSettings.screens
         home.pad.caption=screens.indices.contains(home.pointerSettings.screen) && screens.count>1 ? screens[home.pointerSettings.screen]:""
         // Centered rows live in holders; hiding the holder collapses the row.
@@ -524,40 +524,40 @@ private final class SettingsPage:NSObject {
         super.init()
         let column=page.1
         // With no section tabs, this is the way back besides esc and ⌘1.
-        let back=RemoteButton("Pointer",style:.tertiary,symbol:"chevron.left",height:28,target:self,action:#selector(backPressed))
-        back.setAccessibilityLabel("Back to Pointer")
+        let back=RemoteButton("指向",style:.tertiary,symbol:"chevron.left",height:28,target:self,action:#selector(backPressed))
+        back.setAccessibilityLabel("返回指向页")
         column.addFull(hmRow([back]));column.gap(4)
-        column.addFull(rkLabel("Settings",22,.bold))
+        column.addFull(rkLabel("设置",22,.bold))
         column.addHeader("AirPods")
-        pairs.target=self;pairs.action=#selector(changed(_:));pairs.setAccessibilityLabel("AirPods to connect to")
-        column.addFull(hmSettingRow("Connect to",nil,pairs))
-        column.addHeader("Screen")
-        screens.target=self;screens.action=#selector(changed(_:));screens.setAccessibilityLabel("Screen to control")
-        column.addFull(hmSettingRow("Point at",nil,screens))
-        column.addHeader("Pointer speed")
-        speed.target=self;speed.action=#selector(changed(_:));speed.isContinuous=true;speed.setAccessibilityLabel("Pointer speed")
+        pairs.target=self;pairs.action=#selector(changed(_:));pairs.setAccessibilityLabel("要连接的 AirPods")
+        column.addFull(hmSettingRow("连接到",nil,pairs))
+        column.addHeader("屏幕")
+        screens.target=self;screens.action=#selector(changed(_:));screens.setAccessibilityLabel("要控制的屏幕")
+        column.addFull(hmSettingRow("指向屏幕",nil,screens))
+        column.addHeader("指针速度")
+        speed.target=self;speed.action=#selector(changed(_:));speed.isContinuous=true;speed.setAccessibilityLabel("指针速度")
         speedValue.font = .monospacedDigitSystemFont(ofSize:13,weight:.medium)
         speedValue.setContentHuggingPriority(.required,for:.horizontal)
-        let ends=hmRow([rkLabel("Slower",12,.regular,.secondaryLabelColor)],trailing:[rkLabel("Faster",12,.regular,.secondaryLabelColor)])
+        let ends=hmRow([rkLabel("更慢",12,.regular,.secondaryLabelColor)],trailing:[rkLabel("更快",12,.regular,.secondaryLabelColor)])
         let track=rkVStack([speed,ends],spacing:2,align:.leading)
         ends.widthAnchor.constraint(equalTo:speed.widthAnchor).isActive=true
         speed.widthAnchor.constraint(equalTo:track.widthAnchor).isActive=true
         track.setHuggingPriority(.init(1),for:.horizontal)
         let slider=rkHStack([track,speedValue],spacing:14);slider.alignment = .top
         column.addFull(slider)
-        column.addHeader("Tap to click")
-        clickSound.setAccessibilityLabel("Click sound");clickSound.onChange={[weak self] _ in self?.changed(nil)}
-        column.addFull(hmSettingRow("Click sound","Plays on this Mac when a tap on the case clicks.",clickSound))
-        let teachTap=RemoteButton("Teach Tap…",style:.secondary,height:32,target:self,action:#selector(teachTap))
-        column.addFull(hmSettingRow("Your tap","Tap the case three times so AirPointer knows how your taps feel.",teachTap))
-        column.addHeader("Calibration")
-        let recalibrate=RemoteButton("Recalibrate…",style:.secondary,height:32,target:self,action:#selector(recalibrate))
-        column.addFull(hmSettingRow("Your screen","Point at three dots so AirPointer knows where your screen is.",recalibrate))
-        column.addHeader("Shortcut")
-        column.addFull(hmSettingRow("Turn the pointer on or off",detail:shortcutControl.note,shortcutControl))
+        column.addHeader("轻敲点击")
+        clickSound.setAccessibilityLabel("点击音效");clickSound.onChange={[weak self] _ in self?.changed(nil)}
+        column.addFull(hmSettingRow("点击音效","轻敲充电盒触发点击时，在这台 Mac 上播放声音。",clickSound))
+        let teachTap=RemoteButton("轻敲教学…",style:.secondary,height:32,target:self,action:#selector(teachTap))
+        column.addFull(hmSettingRow("你的轻敲","在充电盒上轻敲三次，让 AirPointer 熟悉你的敲击力度。",teachTap))
+        column.addHeader("校准")
+        let recalibrate=RemoteButton("重新校准…",style:.secondary,height:32,target:self,action:#selector(recalibrate))
+        column.addFull(hmSettingRow("你的屏幕","指向三个圆点，让 AirPointer 知道屏幕在哪。",recalibrate))
+        column.addHeader("快捷键")
+        column.addFull(hmSettingRow("开关指针",detail:shortcutControl.note,shortcutControl))
         column.addFull(RemoteRule())
-        let setup=RemoteButton("Run Setup Again…",style:.secondary,height:32,target:self,action:#selector(setup))
-        column.addFull(hmSettingRow("Setup","Walk through connecting, permissions and calibration again.",setup))
+        let setup=RemoteButton("重新运行设置…",style:.secondary,height:32,target:self,action:#selector(setup))
+        column.addFull(hmSettingRow("设置引导","重新走一遍连接、权限和校准流程。",setup))
         apply()
     }
 
@@ -566,12 +566,12 @@ private final class SettingsPage:NSObject {
         if screens.itemTitles != state.screens{screens.removeAllItems();screens.addItems(withTitles:state.screens)}
         if screens.itemArray.indices.contains(state.screen){screens.selectItem(at:state.screen)}
         screens.isEnabled=state.screens.count>1
-        let pairTitles=state.pairs.isEmpty ? ["No AirPods Pro found"]:state.pair<0 ? ["Choose your AirPods"]+state.pairs:state.pairs
+        let pairTitles=state.pairs.isEmpty ? ["未找到 AirPods Pro"]:state.pair<0 ? ["选择你的 AirPods"]+state.pairs:state.pairs
         if pairs.itemTitles != pairTitles{pairs.removeAllItems();pairs.addItems(withTitles:pairTitles)}
         pairs.selectItem(at:max(0,state.pair));pairs.isEnabled=state.pairs.count>1
         speed.doubleValue=state.speed
         rkSetText(speedValue,String(format:"%.1f×",state.speed))
-        speed.setAccessibilityValueDescription(String(format:"%.1f times normal speed",state.speed))
+        speed.setAccessibilityValueDescription(String(format:"是正常速度的 %.1f 倍",state.speed))
         clickSound.setOn(state.clickSound,animated:false)
     }
     @objc private func changed(_ sender:Any?) {

@@ -21,10 +21,10 @@ struct ClosedCaseAirPods:Equatable {
         var failure:String? {
             switch self {
             case .chosen:return nil
-            case .missing:return "No AirPods Pro are paired with this Mac. Pair them in System Settings → Bluetooth, then connect again."
-            case .several:return "More than one pair of AirPods Pro is paired with this Mac. Choose yours in Settings, then connect again."
-            case .bluetoothOff:return "Bluetooth is off. Turn it on in Control Center, then connect again."
-            case .unreadable:return "AirPointer couldn’t read this Mac’s Bluetooth devices. Connect again."
+            case .missing:return "这台 Mac 没有配对 AirPods Pro。请先在「系统设置 → 蓝牙」中配对，然后重新连接。"
+            case .several:return "这台 Mac 配对了多副 AirPods Pro。请在设置中选择你的那副，然后重新连接。"
+            case .bluetoothOff:return "蓝牙已关闭。请在控制中心打开蓝牙，然后重新连接。"
+            case .unreadable:return "AirPointer 无法读取这台 Mac 的蓝牙设备。请重新连接。"
             }
         }
     }
@@ -94,15 +94,15 @@ struct ClosedCaseAirPods:Equatable {
         }
         return process.terminationStatus==0 ? data:nil
     }
-    static let bluetoothDenied="AirPointer needs Bluetooth to reach your AirPods. Allow it in System Settings → Privacy & Security → Bluetooth, then connect again."
+    static let bluetoothDenied="AirPointer 需要蓝牙权限才能连接 AirPods。请在「系统设置 → 隐私与安全性 → 蓝牙」中允许，然后重新连接。"
     // ClosedCaseRestore's exit codes, in plain words.
     static func restoreFailure(_ status:Int32)->String {
         switch status {
-        case 3:return "Your AirPods didn’t answer. Open the lid, briefly lift and reseat one earbud, then connect again."
+        case 3:return "AirPods 没有响应。请打开盖子，取出并重新放回一只耳机，再重新连接。"
         case 4:return bluetoothDenied
-        case 5:return "Your AirPods aren’t paired with this Mac anymore. Pair them in System Settings → Bluetooth, then connect again."
+        case 5:return "这台 Mac 已经不再配对这副 AirPods。请在「系统设置 → 蓝牙」中重新配对，然后重新连接。"
         case 6:return Choice.bluetoothOff.failure!
-        default:return "AirPointer couldn’t start the connection to your AirPods. Connect again."
+        default:return "AirPointer 无法发起与 AirPods 的连接。请重新连接。"
         }
     }
     // Exits that mean the AirPods went quiet, not that anything here failed. They're usually asleep, and opening the lid wakes them.
@@ -110,40 +110,40 @@ struct ClosedCaseAirPods:Equatable {
     // ClosedCaseMotion's exit codes (the table atop CaseSustainedRenewal.m), or nil for a crash.
     // Nil back means nothing to tell: a requested stop, or a case that finishes its own cleanup.
     static func helperFailure(_ status:Int32?,stopping:Bool)->String? {
-        let reopen="Open the lid, take one AirPod out and put it back, then connect again."
+        let reopen="打开盖子，取出一只耳机再放回去，然后重新连接。"
         switch status {
         case 0,46:return nil
-        case 2:return "AirPointer couldn’t start its motion helper. Quit and reopen AirPointer, then connect again."
-        case 3:return "The connection ended unexpectedly. Connect again, then open the lid."
-        case 10,11:return "AirPointer couldn’t save its session files. Free some disk space, then connect again."
-        case 12:return "AirPointer lost track of which AirPods to use. Connect again."
+        case 2:return "AirPointer 无法启动动作数据助手。请退出并重新打开 AirPointer，然后重新连接。"
+        case 3:return "连接意外中断。请重新连接，然后打开盖子。"
+        case 10,11:return "AirPointer 无法保存会话文件。请清理一些磁盘空间，然后重新连接。"
+        case 12:return "AirPointer 丢失了要用哪副 AirPods 的记录。请重新连接。"
         case 20:return bluetoothDenied
-        case 21:return "Bluetooth isn’t ready. Turn it on, wait a few seconds, then connect again."
+        case 21:return "蓝牙尚未就绪。请打开蓝牙，等几秒钟，然后重新连接。"
         case 22:return restoreFailure(5)
-        case 23:return "Your AirPods aren’t connected. Open the lid, choose them in the Bluetooth menu, then connect again."
-        case 24:return "This version of macOS changed a Bluetooth feature AirPointer needs. The closed-case pointer won’t work until AirPointer is updated."
-        case 25:return "Another app is using your AirPods’ control connection. Quit other AirPods utilities, then connect again."
-        case 26:return "Your AirPods didn’t reconnect. "+reopen
-        case 27:return "Your AirPods reconnected but didn’t open a motion connection. "+reopen
-        case 28:return "Your AirPods didn’t answer. "+reopen
+        case 23:return "AirPods 未连接。请打开盖子，在蓝牙菜单中选择它们，然后重新连接。"
+        case 24:return "这个版本的 macOS 改动了 AirPointer 依赖的蓝牙功能。在 AirPointer 更新之前，合盖指向功能无法使用。"
+        case 25:return "其他 App 正在占用 AirPods 的控制连接。请退出其他 AirPods 工具，然后重新连接。"
+        case 26:return "AirPods 没有重新连接。"+reopen
+        case 27:return "AirPods 已重连，但没有建立动作数据连接。"+reopen
+        case 28:return "AirPods 没有响应。"+reopen
         // Also what AirPods connected to an iPhone at the same time do: they answer the setup, then send nothing.
-        case 30:return "No motion came from your AirPods. If they’re also connected to your iPhone, turn off Bluetooth there. Keep both AirPods in the open case, then connect again."
-        case 31:return "Your AirPods didn’t say what model they are. "+reopen
-        case 32:return "These earbuds don’t report as AirPods Pro. The closed-case pointer needs AirPods Pro."
-        case 34:return "The case didn’t report as an AirPods charging case. Use the case that came with these AirPods, then connect again."
-        case 35:return "The charging case stopped responding. Connect again, then open the lid."
-        case 36:return "The charging case turned down AirPointer’s request. Open the lid, wait a few seconds, then connect again."
-        case 40:return "Your AirPods stopped answering. Connect again, then open the lid."
-        case 41:return "Your AirPods sent something unexpected, so AirPointer stopped to be safe. Connect again, then open the lid."
-        case 42:return "AirPointer couldn’t send to your AirPods. Connect again, then open the lid. If it keeps happening, turn Bluetooth off and on."
-        case 43:return "Motion from your AirPods stopped. Connect again, then open the lid."
-        case 44:return "The connection to your AirPods ended. Connect again, then open the lid."
-        case 45:return "The pointer stopped, but your AirPods may still be sending motion. Turn Bluetooth off and on to reset them."
-        case 50:return stopping ? nil:"AirPointer stopped responding, so the AirPods connection closed. Connect again from the Pointer page."
-        case 51:return stopping ? nil:"AirPointer stopped reading motion, so the AirPods connection closed. Connect again from the Pointer page."
-        case 52:return stopping ? nil:"The AirPods connection closed when AirPointer was stopped. Connect again from the Pointer page."
-        case 53:return "AirPointer had to force the AirPods connection closed. If the pointer or your AirPods act oddly, turn Bluetooth off and on, then connect again."
-        default:return stopping ? nil:"The AirPods connection ended unexpectedly. Connect again, then open the lid."
+        case 30:return "没有收到 AirPods 的动作数据。如果它们同时连着 iPhone，请把手机关掉蓝牙。两只 AirPods 都留在打开的充电盒里，然后重新连接。"
+        case 31:return "AirPods 没有报告自己的型号。"+reopen
+        case 32:return "这副耳机没有报告为 AirPods Pro。合盖指向功能需要 AirPods Pro。"
+        case 34:return "充电盒没有报告为 AirPods 充电盒。请使用与这副 AirPods 配套的充电盒，然后重新连接。"
+        case 35:return "充电盒停止响应了。请重新连接，然后打开盖子。"
+        case 36:return "充电盒拒绝了 AirPointer 的请求。请打开盖子，等几秒钟，然后重新连接。"
+        case 40:return "AirPods 不再响应。请重新连接，然后打开盖子。"
+        case 41:return "AirPods 发来了意外的数据，AirPointer 为安全起见已停止。请重新连接，然后打开盖子。"
+        case 42:return "AirPointer 无法向 AirPods 发送数据。请重新连接，然后打开盖子。如果反复出现，请关掉蓝牙再打开。"
+        case 43:return "AirPods 的动作数据中断了。请重新连接，然后打开盖子。"
+        case 44:return "与 AirPods 的连接已结束。请重新连接，然后打开盖子。"
+        case 45:return "指针已停止，但 AirPods 可能仍在发送动作数据。请关掉蓝牙再打开，把它们复位。"
+        case 50:return stopping ? nil:"AirPointer 停止响应，AirPods 连接已关闭。请在「指向」页重新连接。"
+        case 51:return stopping ? nil:"AirPointer 停止读取动作数据，AirPods 连接已关闭。请在「指向」页重新连接。"
+        case 52:return stopping ? nil:"AirPointer 被停止时，AirPods 连接已关闭。请在「指向」页重新连接。"
+        case 53:return "AirPointer 不得不强制关闭 AirPods 连接。如果指针或 AirPods 表现异常，请关掉蓝牙再打开，然后重新连接。"
+        default:return stopping ? nil:"AirPods 连接意外中断。请重新连接，然后打开盖子。"
         }
     }
 }

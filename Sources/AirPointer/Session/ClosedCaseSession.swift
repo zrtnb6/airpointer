@@ -30,7 +30,7 @@ func readClosedCaseMotionPipe(_ stream:FileHandle) throws ->Data?{
     let count=Darwin.read(stream.fileDescriptor,&bytes,bytes.count)
     if count<0{
         if errno==EAGAIN || errno==EWOULDBLOCK || errno==EINTR{return nil}
-        throw LessonError.message("Motion connection ended.")
+        throw LessonError.message("动作数据连接已结束。")
     }
     return count>0 ? Data(bytes.prefix(count)):nil
 }
@@ -129,15 +129,15 @@ func saveClosedCaseJSON(_ value:[String:Any],to url:URL,onError:((String)->Void)
 
 func makeClosedCaseMotionContext(onError:((String)->Void)?=nil) throws -> JSContext {
     guard let url=Bundle.main.url(forResource:"ClosedCaseOrientation",withExtension:"js"),let context=JSContext() else{
-        throw LessonError.message("The closed-case motion component is missing.")
+        throw LessonError.message("缺少合盖动作数据模块。")
     }
     let source=try String(contentsOf:url,encoding:.utf8).replacingOccurrences(of:"export ",with:"")
     context.exceptionHandler={ context,error in
         context?.exception=error
-        onError?(error?.toString() ?? "Motion conversion failed.")
+        onError?(error?.toString() ?? "动作数据转换失败。")
     }
     context.evaluateScript(source+"\nvar rawFusion=new Orientation(); var rawGrip=new Grip();")
-    guard context.exception==nil else{throw LessonError.message("The motion component could not load.")}
+    guard context.exception==nil else{throw LessonError.message("动作数据模块加载失败。")}
     return context
 }
 
@@ -558,7 +558,7 @@ final class ClosedCaseSession: NSObject {
         let resume=resumeAfterDrop;pause()
         if let error=motion.applyOverlayPoses(center:center,right:right,up:up){
             feedError=nil;motion.resetGrip()
-            throw LessonError.message(error.isEmpty ? "Calibration didn’t take. Point at the center to try again.":error)
+            throw LessonError.message(error.isEmpty ? "校准未生效。请指向中心再试一次。":error)
         }
         finishCalibration(resume:resume);saveCalibration();saveGrip()
     }
@@ -567,7 +567,7 @@ final class ClosedCaseSession: NSObject {
         let resume=resumeAfterDrop;pause()
         guard let kept=motion.recenter(to:[center.w,center.x,center.y,center.z]) else{
             feedError=nil;motion.resetGrip(keepingEdges:true)
-            throw LessonError.message("Calibration didn’t take. Point at the center to try again.")
+            throw LessonError.message("校准未生效。请指向中心再试一次。")
         }
         resumeAfterDrop=resume
         guard kept else{return false}
@@ -653,7 +653,7 @@ final class ClosedCaseSession: NSObject {
                 guard let self,self.preparing,self.preparation==token else{return}
                 let choice=ClosedCaseAirPods.choose(survey,saved:ClosedCaseAirPods.saved)
                 guard case .chosen(let pair)=choice else{self.finished(choice.failure ?? "");return}
-                do{try ClosedCaseAirPods.save(pair)}catch{self.finished("AirPointer couldn’t save which AirPods to use. Connect again.");return}
+                do{try ClosedCaseAirPods.save(pair)}catch{self.finished("AirPointer 无法保存要使用哪副 AirPods。请重新连接。");return}
                 AudioOutputGuard.shared.sessionStarted(target:pair.address)
                 loadClosedCaseCalibration(from:self.calibrationURL,grip:self.gripURL,target:self.target){[weak self] hash,saved,grip in
                     guard let self,self.preparing,self.preparation==token else{return}
@@ -671,14 +671,14 @@ final class ClosedCaseSession: NSObject {
         lidWatcher=watcher;watcher.start()
         lidTimeout=Timer.scheduledTimer(withTimeInterval:120,repeats:false){[weak self] _ in
             guard let self,self.preparing,self.preparation==token else{return}
-            self.endLidWait();self.finished("AirPointer stopped waiting for the lid. Connect again when you’re ready.")
+            self.endLidWait();self.finished("AirPointer 已停止等待开盖。准备好后请重新连接。")
         }
         changed()
     }
     private func endLidWait(){lidTimeout?.invalidate();lidTimeout=nil;lidWatcher?.stop();lidWatcher=nil}
     private func launch(){
         guard let restore=Bundle.main.url(forResource:"ClosedCaseRestore",withExtension:"bin") else{
-            finished("AirPods connection setup is missing from this build.");return
+            finished("这个构建缺少 AirPods 连接组件。");return
         }
         do{
             try resetFusion();confirmed=false;connected=false;ready=false;stopping=false;closedAt=0;stoppedAt=0;userEnded=false;hasPointed=false;pause()
@@ -701,7 +701,7 @@ final class ClosedCaseSession: NSObject {
             process.standardOutput=log;process.standardError=log
             process.terminationHandler={ [weak self] process in DispatchQueue.main.async{
                 guard let self,self.bootstrap === process else{return};self.bootstrap=nil
-                if self.stopping{self.finished(self.feedError ?? "Stopped. Reopen the lid.");return}
+                if self.stopping{self.finished(self.feedError ?? "已停止。请重新打开盖子。");return}
                 if process.terminationStatus==0{self.launchHelper()}else{self.finished(ClosedCaseAirPods.restoreFailure(process.terminationStatus))}
             }}
             try process.run()
@@ -711,14 +711,14 @@ final class ClosedCaseSession: NSObject {
     }
     private func launchHelper(){
         guard let executable=Bundle.main.url(forResource:"ClosedCaseMotion",withExtension:"bin"),let capture else{
-            finished("The closed-case motion component is missing.");return
+            finished("缺少合盖动作数据模块。");return
         }
         let process=Process();helper=process;process.executableURL=executable
         process.arguments=[target.path,"--pointer-session",capture.path]
         var errorPipe:Pipe?
         let motionPipe=Pipe();stream=motionPipe.fileHandleForReading
         let flags=fcntl(motionPipe.fileHandleForReading.fileDescriptor,F_GETFL)
-        guard flags>=0,fcntl(motionPipe.fileHandleForReading.fileDescriptor,F_SETFL,flags|O_NONBLOCK)==0 else{finished("Couldn’t open the motion connection.");return}
+        guard flags>=0,fcntl(motionPipe.fileHandleForReading.fileDescriptor,F_SETFL,flags|O_NONBLOCK)==0 else{finished("无法打开动作数据连接。");return}
         process.standardOutput=motionPipe
         if let helperLog=try? ClosedCaseHelperLog(folder:capture.deletingLastPathComponent()){
             let errors=Pipe();errorPipe=errors;helperLog.attach(errors);process.standardError=errors
@@ -753,7 +753,7 @@ final class ClosedCaseSession: NSObject {
     private func tick(){
         let now=ProcessInfo.processInfo.systemUptime
         if isActive && !stopping{do{try renewSessionLease()}catch{fail("Couldn’t keep the pointer connection active.");return}}
-        if bootstrap?.isRunning == true && now-startedAt>30{feedError="AirPods did not connect. Open the lid, wake one earbud, then reconnect.";stop();return}
+        if bootstrap?.isRunning == true && now-startedAt>30{feedError="AirPods 没有连上。请打开盖子，唤醒一只耳机，然后重新连接。";stop();return}
         if !stopping && helper?.isRunning == true && !confirmed && lastHost==0 && now-helperStartedAt>20{
             fail("No fresh motion arrived. Open the lid, wake one earbud, then reconnect.");return
         }
@@ -794,7 +794,7 @@ final class ClosedCaseSession: NSObject {
         }
         if let error=cs["error"] as? String,!error.isEmpty,feedError==nil{
             try? log?.write(contentsOf:Data("helper error: \(error)\n".utf8))
-            feedError="The case stopped responding. Connect again, then open the lid."
+            feedError="充电盒停止响应了。请重新连接，然后打开盖子。"
         }
         changed()
     }
@@ -804,13 +804,13 @@ final class ClosedCaseSession: NSObject {
         do{
             guard let stream,let fresh=try readClosedCaseMotionPipe(stream),!fresh.isEmpty else{return}
             try? motionRecord?.write(contentsOf:fresh)
-            pending.append(fresh);guard pending.count<=65536 else{throw LessonError.message("Motion input fell behind.")}
+            pending.append(fresh);guard pending.count<=65536 else{throw LessonError.message("动作数据积压，处理跟不上。")}
             var rows=[[Double]]()
             while let end=pending.firstIndex(of:10){
                 let line=pending.prefix(upTo:end);pending.removeSubrange(...end)
-                guard let text=String(data:line,encoding:.utf8) else{throw LessonError.message("Invalid motion input.")}
+                guard let text=String(data:line,encoding:.utf8) else{throw LessonError.message("动作数据格式无效。")}
                 let values=text.split(separator:",").compactMap{Double($0)}
-                guard values.count==7,values.allSatisfy(\.isFinite) else{throw LessonError.message("Invalid motion input.")}
+                guard values.count==7,values.allSatisfy(\.isFinite) else{throw LessonError.message("动作数据格式无效。")}
                 rows.append(values)
             }
             guard !rows.isEmpty else{return}
@@ -940,7 +940,7 @@ final class ClosedCaseSession: NSObject {
         endMessage="Paused";changed()
         if let capture{try? Data("stop\n".utf8).write(to:capture.appendingPathComponent("phase.txt"),options:.atomic)}
         if bootstrap?.isRunning == true{bootstrap?.terminate();return}
-        if helper?.isRunning != true{finished(feedError ?? "Stopped. Reopen the lid.")}
+        if helper?.isRunning != true{finished(feedError ?? "已停止。请重新打开盖子。")}
     }
     private func finished(_ message:String){
         step("session ended");endMessage=message;preparing=false;signalled=false;endLidWait()

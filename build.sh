@@ -31,7 +31,7 @@ cat > AirPointer.app/Contents/Info.plist <<'PLIST'
 <key>CFBundleVersion</key><string>2</string>
 <key>LSMinimumSystemVersion</key><string>14.0</string>
 <key>NSHighResolutionCapable</key><true/>
-<key>NSBluetoothAlwaysUsageDescription</key><string>AirPointer connects to your paired AirPods to keep motion available with the case closed.</string>
+<key>NSBluetoothAlwaysUsageDescription</key><string>AirPointer 需要连接已配对的 AirPods，以便在合盖状态下持续获取动作数据。</string>
 </dict></plist>
 PLIST
 mv -f "$compiled/AirPointer" AirPointer.app/Contents/MacOS/AirPointer

@@ -33,12 +33,12 @@ struct PointerShortcut:Equatable {
     static func recorded(_ flags:NSEvent.ModifierFlags,key:UInt16?=nil,name:String?=nil,special:Bool=false)->Recorded {
         var modifiers=flags.intersection(relevant)
         guard let key else{
-            guard modifiers.contains(.function),modifiers != .function else{return .refused("Use fn with another modifier key, or a key with ⌃ or ⌥.")}
+            guard modifiers.contains(.function),modifiers != .function else{return .refused("请把 fn 和其他修饰键一起用，或用带 ⌃ 或 ⌥ 的按键。")}
             return .shortcut(PointerShortcut(modifiers:modifiers))
         }
         if special{modifiers.remove(.function)}
-        guard !modifiers.contains(.function) else{return .refused("fn only works with other modifier keys, like fn ⌃.")}
-        guard !modifiers.isDisjoint(with:[.control,.option]) else{return .refused("Include ⌃ or ⌥, so it doesn’t clash with typing or other apps.")}
+        guard !modifiers.contains(.function) else{return .refused("fn 只能和其他修饰键搭配，例如 fn ⌃。")}
+        guard !modifiers.isDisjoint(with:[.control,.option]) else{return .refused("请加上 ⌃ 或 ⌥，避免和打字或其他 App 的快捷键冲突。")}
         return .shortcut(PointerShortcut(modifiers:modifiers,key:key,keyName:name))
     }
     static func load(from defaults:UserDefaults)->PointerShortcut {
@@ -96,10 +96,10 @@ final class PointerShortcutKeys {
 
 // The Settings control: click the shortcut, then press the new one. esc or clicking elsewhere keeps the old one.
 final class PointerShortcutControl:NSStackView {
-    static let guidance="Works from any app. It also connects your AirPods when they aren’t connected. Click the shortcut to change it."
+    static let guidance="在任何 App 中都能用。AirPods 未连接时，它也会顺带发起连接。点按快捷键即可修改。"
     let note=rkWrap(guidance,12)
     private lazy var button=RemoteButton(PointerShortcut.current.label,style:.secondary,height:32,target:self,action:#selector(begin))
-    private lazy var reset=RemoteButton("Reset",style:.tertiary,height:32,target:self,action:#selector(resetPressed))
+    private lazy var reset=RemoteButton("重置",style:.tertiary,height:32,target:self,action:#selector(resetPressed))
     private var monitor:Any?,resignObserver:Any?,peak:NSEvent.ModifierFlags=[],waitForRelease=false
 
     init() {
@@ -113,7 +113,7 @@ final class PointerShortcutControl:NSStackView {
 
     private func refresh() {
         let current=PointerShortcut.current
-        button.title=current.label;button.setAccessibilityLabel("Change shortcut, currently \(current.spoken)")
+        button.title=current.label;button.setAccessibilityLabel("修改快捷键，当前为 \(current.spoken)")
         reset.isHidden=current == .fnControl
         rkSetText(note,Self.guidance)
     }
@@ -121,8 +121,8 @@ final class PointerShortcutControl:NSStackView {
         guard monitor==nil else{return}
         PointerShortcutKeys.shared.suspended=true
         peak=[];waitForRelease=false
-        button.title="Press keys…";button.setAccessibilityLabel("Waiting for the new shortcut")
-        rkSetText(note,"Press the new shortcut, or esc to keep the old one.")
+        button.title="请按键…";button.setAccessibilityLabel("正在等待新的快捷键")
+        rkSetText(note,"按下新的快捷键，或按 esc 保留原来的。")
         monitor=NSEvent.addLocalMonitorForEvents(matching:[.keyDown,.flagsChanged,.leftMouseDown]){[weak self] event in self?.handle(event) ?? event}
         resignObserver=NotificationCenter.default.addObserver(forName:NSApplication.didResignActiveNotification,object:nil,queue:.main){[weak self] _ in self?.finish()}
     }
@@ -149,7 +149,7 @@ final class PointerShortcutControl:NSStackView {
         case .refused(let reason):rkSetText(note,reason)
         case .shortcut(let shortcut):
             if PointerShortcutKeys.shared.set(shortcut){finish()}
-            else{rkSetText(note,"Another app is using that shortcut. Try another, or esc to keep the old one.")}
+            else{rkSetText(note,"该快捷键已被其他 App 占用。换一个，或按 esc 保留原来的。")}
         }
     }
     private func finish() {
