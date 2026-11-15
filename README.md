@@ -52,6 +52,28 @@
 
 > 本汉化版已在 macOS 26 / Xcode 26.5 的 **Intel（x86_64）** 机器上完整编译，`--self-test` 与 `--check-home` 全部通过。理论上与芯片架构无关，但上游只在 Apple Silicon 上跑过。
 
+## 安装
+
+不想自己编译，可以直接下现成的安装包：
+
+**[下载最新 Release](https://github.com/zrtnb6/airpointer/releases/latest)** → `AirPointer-0.2-zh.1-universal.dmg`
+
+这是**通用二进制**，Intel 和 Apple Silicon 用同一个包，不需要挑。
+
+1. 打开 DMG，把 `AirPointer.app` 拖到旁边的 `Applications` 上。
+2. **首次打开请右键 App →「打开」→ 再点「打开」。**
+   构建用的是 adhoc 签名、没有经过 Apple 公证，直接双击会被 Gatekeeper 拦下（提示「无法验证开发者」）。
+3. 如果提示「已损坏，无法打开」，或在系统设置里始终找不到，执行：
+
+   ```zsh
+   xattr -dr com.apple.quarantine /Applications/AirPointer.app
+   ```
+
+4. 之后按「首次设置」走四步授权。
+
+> `Info.plist` 里声明的最低系统是 macOS 14，但上游只在 macOS 26 上验证过；更低的版本不保证能用。
+> 装好新版本后如果一直提示要权限，见下面 `tccutil reset` 那一段——adhoc 签名换了二进制，旧授权就对不上了。
+
 ## 构建与运行
 
 ```zsh
